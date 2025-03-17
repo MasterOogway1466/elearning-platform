@@ -2,6 +2,7 @@ E:\elearningplatform\backend\src\main\java\com\elearning\model\User.java
 E:\elearningplatform\backend\src\main\java\com\elearning\config\WebConfig.java
 E:\elearningplatform\backend\src\main\java\com\elearning\dto\SignupRequest.java
 E:\elearningplatform\backend\src\main\java\com\elearning\ELearningApplication.java
+E:\elearningplatform\backend\src\main\java\com\elearning\controller\EndpointListController.java
 E:\elearningplatform\backend\src\main\java\com\elearning\model\Role.java
 E:\elearningplatform\backend\src\main\java\com\elearning\security\JwtUtils.java
 E:\elearningplatform\backend\src\main\java\com\elearning\security\WebSecurityConfig.java
