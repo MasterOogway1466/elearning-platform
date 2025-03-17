@@ -10,6 +10,7 @@ import com.elearning.repository.UserRepository;
 import com.elearning.security.JwtUtils;
 import com.elearning.security.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,7 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = "http://localhost:3000", maxAge = 3600)
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -42,22 +43,36 @@ public class AuthController {
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+        try {
+            System.out.println("Login attempt for username: " + loginRequest.getUsername());
+            
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
-        
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();        
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(item -> item.getAuthority())
-                .collect(Collectors.toList());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            System.out.println("Authentication successful, generating token");
+            
+            String jwt = jwtUtils.generateJwtToken(authentication);
+            System.out.println("Token generated successfully");
+            
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();        
+            List<String> roles = userDetails.getAuthorities().stream()
+                    .map(item -> item.getAuthority())
+                    .collect(Collectors.toList());
 
-        return ResponseEntity.ok(new JwtResponse(jwt, 
-                                                 userDetails.getId(), 
-                                                 userDetails.getUsername(), 
-                                                 userDetails.getEmail(), 
-                                                 roles));
+            System.out.println("Returning JWT response");
+            return ResponseEntity.ok(new JwtResponse(jwt, 
+                                                    userDetails.getId(), 
+                                                    userDetails.getUsername(), 
+                                                    userDetails.getEmail(), 
+                                                    roles));
+        } catch (Exception e) {
+            System.err.println("ERROR during authentication: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new MessageResponse("Error: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/signup")

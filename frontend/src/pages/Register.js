@@ -9,21 +9,82 @@ const Register = () => {
   const [fullName, setFullName] = useState('');
   const [successful, setSuccessful] = useState(false);
   const [message, setMessage] = useState('');
+  const [errors, setErrors] = useState({
+    username: '',
+    email: '',
+    password: ''
+  });
 
   const onChangeUsername = (e) => {
-    setUsername(e.target.value);
+    const value = e.target.value;
+    setUsername(value);
+    
+    if (value && (value.length < 3 || value.length > 20)) {
+      setErrors({...errors, username: 'Username must be between 3 and 20 characters'});
+    } else {
+      setErrors({...errors, username: ''});
+    }
   };
 
   const onChangeEmail = (e) => {
-    setEmail(e.target.value);
+    const value = e.target.value;
+    setEmail(value);
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (value && !emailRegex.test(value)) {
+      setErrors({...errors, email: 'Please enter a valid email address'});
+    } else {
+      setErrors({...errors, email: ''});
+    }
   };
 
   const onChangePassword = (e) => {
-    setPassword(e.target.value);
+    const value = e.target.value;
+    setPassword(value);
+    
+    if (value && value.length < 6) {
+      setErrors({...errors, password: 'Password must be at least 6 characters'});
+    } else {
+      setErrors({...errors, password: ''});
+    }
   };
 
   const onChangeFullName = (e) => {
     setFullName(e.target.value);
+  };
+
+  const validateForm = () => {
+    const newErrors = {
+      username: '',
+      email: '',
+      password: ''
+    };
+    
+    let isValid = true;
+    
+    if (!username || !email || !password || !fullName) {
+      setMessage('All fields are required');
+      return false;
+    }
+    
+    if (username.length < 3 || username.length > 20) {
+      newErrors.username = 'Username must be between 3 and 20 characters';
+      isValid = false;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      newErrors.email = 'Please enter a valid email address';
+      isValid = false;
+    }
+    
+    if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+      isValid = false;
+    }
+    
+    setErrors(newErrors);
+    return isValid;
   };
 
   const handleRegister = (e) => {
@@ -32,9 +93,7 @@ const Register = () => {
     setMessage('');
     setSuccessful(false);
 
-    // Form validation
-    if (!username || !email || !password || !fullName) {
-      setMessage('All fields are required');
+    if (!validateForm()) {
       return;
     }
 
@@ -84,6 +143,7 @@ const Register = () => {
                   value={username}
                   onChange={onChangeUsername}
                 />
+                {errors.username && <div className="validation-error">{errors.username}</div>}
               </div>
 
               <div className="form-group">
@@ -95,6 +155,7 @@ const Register = () => {
                   value={email}
                   onChange={onChangeEmail}
                 />
+                {errors.email && <div className="validation-error">{errors.email}</div>}
               </div>
 
               <div className="form-group">
@@ -106,6 +167,7 @@ const Register = () => {
                   value={password}
                   onChange={onChangePassword}
                 />
+                {errors.password && <div className="validation-error">{errors.password}</div>}
               </div>
 
               <div className="form-group">
