@@ -1,3 +1,8 @@
+/* Background colour*/
+body {
+  background-color: #ebebeb;
+}
+
 /* Home Page Styles */
 .home-container {
   max-width: 1200px;
