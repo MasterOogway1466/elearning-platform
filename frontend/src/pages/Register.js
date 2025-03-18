@@ -7,6 +7,7 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [role, setRole] = useState('student'); // Default role
   const [successful, setSuccessful] = useState(false);
   const [message, setMessage] = useState('');
   const [errors, setErrors] = useState({
@@ -53,6 +54,10 @@ const Register = () => {
     setFullName(e.target.value);
   };
 
+  const onChangeRole = (e) => {
+    setRole(e.target.value);
+  };
+
   const validateForm = () => {
     const newErrors = {
       username: '',
@@ -97,7 +102,7 @@ const Register = () => {
       return;
     }
 
-    AuthService.register(username, email, password, fullName)
+    AuthService.register(username, email, password, fullName, role)
       .then((response) => {
         setMessage(response.data.message);
         setSuccessful(true);
@@ -168,6 +173,19 @@ const Register = () => {
                   onChange={onChangePassword}
                 />
                 {errors.password && <div className="validation-error">{errors.password}</div>}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="role">Role</label>
+                <select
+                  className="form-control"
+                  name="role"
+                  value={role}
+                  onChange={onChangeRole}
+                >
+                  <option value="student">Student</option>
+                  <option value="instructor">Instructor</option>
+                </select>
               </div>
 
               <div className="form-group">

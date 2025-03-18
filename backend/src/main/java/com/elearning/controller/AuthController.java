@@ -45,27 +45,27 @@ public class AuthController {
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         try {
             System.out.println("Login attempt for username: " + loginRequest.getUsername());
-            
+
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
             System.out.println("Authentication successful, generating token");
-            
+
             String jwt = jwtUtils.generateJwtToken(authentication);
             System.out.println("Token generated successfully");
-            
-            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();        
+
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
             List<String> roles = userDetails.getAuthorities().stream()
                     .map(item -> item.getAuthority())
                     .collect(Collectors.toList());
 
             System.out.println("Returning JWT response");
-            return ResponseEntity.ok(new JwtResponse(jwt, 
-                                                    userDetails.getId(), 
-                                                    userDetails.getUsername(), 
-                                                    userDetails.getEmail(), 
-                                                    roles));
+            return ResponseEntity.ok(new JwtResponse(jwt,
+                    userDetails.getId(),
+                    userDetails.getUsername(),
+                    userDetails.getEmail(),
+                    roles));
         } catch (Exception e) {
             System.err.println("ERROR during authentication: " + e.getMessage());
             e.printStackTrace();
@@ -99,19 +99,20 @@ public class AuthController {
         Set<String> strRoles = signUpRequest.getRoles();
         Set<String> roles = new HashSet<>();
 
-        if (strRoles == null) {
+        if (strRoles == null || strRoles.isEmpty()) {
             roles.add(Role.ROLE_STUDENT.name());
         } else {
             strRoles.forEach(role -> {
-                switch (role) {
-                case "admin":
-                    roles.add(Role.ROLE_ADMIN.name());
-                    break;
-                case "instructor":
-                    roles.add(Role.ROLE_INSTRUCTOR.name());
-                    break;
-                default:
-                    roles.add(Role.ROLE_STUDENT.name());
+                switch (role.toLowerCase()) {
+                    case "admin":
+                        roles.add(Role.ROLE_ADMIN.name());
+                        break;
+                    case "instructor":
+                        roles.add(Role.ROLE_INSTRUCTOR.name());
+                        break;
+                    case "student":
+                    default:
+                        roles.add(Role.ROLE_STUDENT.name());
                 }
             });
         }
@@ -126,4 +127,4 @@ public class AuthController {
     public String directTest() {
         return "Direct test endpoint works!";
     }
-} 
+}

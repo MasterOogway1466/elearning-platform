@@ -10,6 +10,8 @@ import Footer from './components/common/Footer';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import StudentDashboard from './pages/StudentDashboard';
+import InstructorDashboard from './pages/InstructorDashboard';
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/student-dashboard" element={<StudentDashboard />} />
+            <Route path="/instructor-dashboard" element={<InstructorDashboard />} />
           </Routes>
         </main>
         <Footer />
