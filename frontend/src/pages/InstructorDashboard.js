@@ -3,6 +3,7 @@ import axios from 'axios';
 import authHeader from '../services/auth-header';
 import CreateCourse from '../components/course/CreateCourse';
 import CourseList from '../components/course/CourseList';
+import EnrolledStudents from '../components/course/EnrolledStudents';
 import './Dashboard.css';
 
 const InstructorDashboard = () => {
@@ -10,6 +11,7 @@ const InstructorDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('myCourses');
+  const [selectedCourse, setSelectedCourse] = useState(null);
 
   const fetchCourses = async () => {
     try {
@@ -35,6 +37,11 @@ const InstructorDashboard = () => {
     setCourses([...courses, newCourse]);
     setActiveTab('myCourses');
   };
+  
+  const handleViewStudents = (courseId) => {
+    setSelectedCourse(courseId);
+    setActiveTab('students');
+  };
 
   return (
     <div className="dashboard-container">
@@ -53,6 +60,14 @@ const InstructorDashboard = () => {
         >
           Create Course
         </button>
+        {selectedCourse && (
+          <button
+            className={`tab-button ${activeTab === 'students' ? 'active' : ''}`}
+            onClick={() => setActiveTab('students')}
+          >
+            Enrolled Students
+          </button>
+        )}
         <button
           className={`tab-button ${activeTab === 'analytics' ? 'active' : ''}`}
           onClick={() => setActiveTab('analytics')}
@@ -70,7 +85,50 @@ const InstructorDashboard = () => {
             ) : error ? (
               <div className="alert alert-danger">{error}</div>
             ) : (
-              <CourseList courses={courses} />
+              <>
+                {courses.length === 0 ? (
+                  <div className="alert alert-info">
+                    You haven't created any courses yet. Create your first course to get started.
+                  </div>
+                ) : (
+                  <div>
+                    <div className="instructor-course-list">
+                      {courses.map(course => (
+                        <div className="instructor-course-item" key={course.id}>
+                          <div className="course-card">
+                            <div className="course-image">
+                              {course.imageUrl ? (
+                                <img src={course.imageUrl} alt={course.title} />
+                              ) : (
+                                <div className="default-course-image">
+                                  <span>{course.title.charAt(0)}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="course-details">
+                              <h3>{course.title}</h3>
+                              <div className="course-category">{course.category}</div>
+                              <p className="course-description">
+                                {course.description.length > 100
+                                  ? `${course.description.substring(0, 100)}...`
+                                  : course.description}
+                              </p>
+                              <div className="course-actions">
+                                <button 
+                                  className="btn btn-primary"
+                                  onClick={() => handleViewStudents(course.id)}
+                                >
+                                  View Enrolled Students
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -78,6 +136,13 @@ const InstructorDashboard = () => {
         {activeTab === 'createCourse' && (
           <div className="create-course-section">
             <CreateCourse onSuccess={handleCourseCreated} />
+          </div>
+        )}
+        
+        {activeTab === 'students' && selectedCourse && (
+          <div className="students-section">
+            <h2>Students Enrolled in {courses.find(c => c.id === selectedCourse)?.title}</h2>
+            <EnrolledStudents courseId={selectedCourse} />
           </div>
         )}
         

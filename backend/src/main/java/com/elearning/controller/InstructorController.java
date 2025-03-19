@@ -4,8 +4,10 @@ import com.elearning.dto.CourseRequest;
 import com.elearning.dto.CourseResponse;
 import com.elearning.dto.MessageResponse;
 import com.elearning.model.Course;
+import com.elearning.model.Enrollment;
 import com.elearning.model.User;
 import com.elearning.repository.CourseRepository;
+import com.elearning.repository.EnrollmentRepository;
 import com.elearning.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +33,9 @@ public class InstructorController {
     
     @Autowired
     private CourseRepository courseRepository;
+    
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
 
     @GetMapping("/dashboard")
     public ResponseEntity<?> getInstructorDashboard() {
@@ -139,11 +144,63 @@ public class InstructorController {
             response.put("username", userData.getUsername());
             response.put("email", userData.getEmail());
             response.put("fullName", userData.getFullName());
+            response.put("phoneNumber", userData.getPhoneNumber());
             response.put("roles", userData.getRoles());
             
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(404).body("User not found");
         }
+    }
+
+    @GetMapping("/courses/{courseId}/students")
+    public ResponseEntity<?> getCourseEnrolledStudents(
+            @PathVariable Long courseId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+        
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+        
+        User instructor = userOpt.get();
+        
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+        
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+        
+        Course course = courseOpt.get();
+        
+        // Check if the instructor is the owner of this course
+        if (!course.getInstructor().getId().equals(instructor.getId())) {
+            return ResponseEntity.status(403).body("You are not authorized to view students for this course");
+        }
+        
+        // Get all enrollments for this course
+        List<Enrollment> enrollments = enrollmentRepository.findByCourse(course);
+        
+        // Map to student details to return
+        List<Map<String, Object>> studentDetails = enrollments.stream()
+            .map(enrollment -> {
+                User student = enrollment.getStudent();
+                Map<String, Object> details = new HashMap<>();
+                details.put("id", student.getId());
+                details.put("username", student.getUsername());
+                details.put("email", student.getEmail());
+                details.put("fullName", student.getFullName());
+                details.put("phoneNumber", student.getPhoneNumber());
+                details.put("enrolledAt", enrollment.getEnrolledAt());
+                return details;
+            })
+            .collect(Collectors.toList());
+            
+        return ResponseEntity.ok(studentDetails);
     }
 }

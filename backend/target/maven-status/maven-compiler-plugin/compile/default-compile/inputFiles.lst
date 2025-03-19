@@ -3,7 +3,10 @@ E:\elearningplatform\backend\src\main\java\com\elearning\model\User.java
 E:\elearningplatform\backend\src\main\java\com\elearning\controller\InstructorController.java
 E:\elearningplatform\backend\src\main\java\com\elearning\config\WebConfig.java
 E:\elearningplatform\backend\src\main\java\com\elearning\ELearningApplication.java
+E:\elearningplatform\backend\src\main\java\com\elearning\dto\EnrollmentRequest.java
 E:\elearningplatform\backend\src\main\java\com\elearning\dto\CourseRequest.java
+E:\elearningplatform\backend\src\main\java\com\elearning\model\Enrollment.java
+E:\elearningplatform\backend\src\main\java\com\elearning\repository\EnrollmentRepository.java
 E:\elearningplatform\backend\src\main\java\com\elearning\controller\EndpointListController.java
 E:\elearningplatform\backend\src\main\java\com\elearning\security\JwtUtils.java
 E:\elearningplatform\backend\src\main\java\com\elearning\security\WebSecurityConfig.java

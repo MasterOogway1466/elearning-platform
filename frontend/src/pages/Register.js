@@ -8,6 +8,7 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [role, setRole] = useState('student'); // Default role
   const [successful, setSuccessful] = useState(false);
   const [message, setMessage] = useState('');
@@ -15,7 +16,8 @@ const Register = () => {
   const [errors, setErrors] = useState({
     username: '',
     email: '',
-    password: ''
+    password: '',
+    phoneNumber: ''
   });
 
   const navigate = useNavigate();
@@ -58,6 +60,18 @@ const Register = () => {
   const onChangeFullName = (e) => {
     setFullName(e.target.value);
   };
+  
+  const onChangePhoneNumber = (e) => {
+    const value = e.target.value;
+    setPhoneNumber(value);
+    
+    const phoneRegex = /^\+?[0-9\s-()]{8,15}$/;
+    if (value && !phoneRegex.test(value)) {
+      setErrors({...errors, phoneNumber: 'Please enter a valid phone number'});
+    } else {
+      setErrors({...errors, phoneNumber: ''});
+    }
+  };
 
   const onChangeRole = (e) => {
     setRole(e.target.value);
@@ -67,7 +81,8 @@ const Register = () => {
     const newErrors = {
       username: '',
       email: '',
-      password: ''
+      password: '',
+      phoneNumber: ''
     };
     
     let isValid = true;
@@ -93,6 +108,14 @@ const Register = () => {
       isValid = false;
     }
     
+    if (phoneNumber) {
+      const phoneRegex = /^\+?[0-9\s-()]{8,15}$/;
+      if (!phoneRegex.test(phoneNumber)) {
+        newErrors.phoneNumber = 'Please enter a valid phone number';
+        isValid = false;
+      }
+    }
+    
     setErrors(newErrors);
     return isValid;
   };
@@ -110,7 +133,7 @@ const Register = () => {
     }
 
     try {
-      const response = await register(username, email, password, fullName, role);
+      const response = await register(username, email, password, fullName, phoneNumber, role);
       setMessage(response.data.message || 'Registration successful! You can now login.');
       setSuccessful(true);
       
@@ -196,6 +219,19 @@ const Register = () => {
                   onChange={onChangePassword}
                 />
                 {errors.password && <div className="validation-error">{errors.password}</div>}
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="phoneNumber">Phone Number</label>
+                <input
+                  type="tel"
+                  className="form-control"
+                  name="phoneNumber"
+                  value={phoneNumber}
+                  onChange={onChangePhoneNumber}
+                  placeholder="e.g. +1234567890"
+                />
+                {errors.phoneNumber && <div className="validation-error">{errors.phoneNumber}</div>}
               </div>
 
               <div className="form-group">

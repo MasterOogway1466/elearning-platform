@@ -144,6 +144,10 @@ const Profile = () => {
               <div className="col-md-8">{user.fullName}</div>
             </div>
             <div className="row mb-3">
+              <div className="col-md-4" style={{ fontWeight: "bold" }}>Phone Number:</div>
+              <div className="col-md-8">{user.phoneNumber || 'Not provided'}</div>
+            </div>
+            <div className="row mb-3">
               <div className="col-md-4" style={{ fontWeight: "bold" }}>Role:</div>
               <div className="col-md-8">
                 {user.roles ? user.roles.map(role => role.replace('ROLE_', '')).join(', ') : 'N/A'}

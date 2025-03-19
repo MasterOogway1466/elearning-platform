@@ -1,10 +1,13 @@
 package com.elearning.controller;
 
 import com.elearning.dto.CourseResponse;
+import com.elearning.dto.EnrollmentRequest;
 import com.elearning.dto.MessageResponse;
 import com.elearning.model.Course;
+import com.elearning.model.Enrollment;
 import com.elearning.model.User;
 import com.elearning.repository.CourseRepository;
+import com.elearning.repository.EnrollmentRepository;
 import com.elearning.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +33,9 @@ public class StudentController {
     
     @Autowired
     private CourseRepository courseRepository;
+    
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
 
     @GetMapping("/dashboard")
     public ResponseEntity<?> getStudentDashboard() {
@@ -55,6 +61,82 @@ public class StudentController {
             .collect(Collectors.toList());
             
         return ResponseEntity.ok(courseResponses);
+    }
+    
+    @GetMapping("/enrolled-courses")
+    public ResponseEntity<?> getEnrolledCourses(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+        
+        if (userOpt.isPresent()) {
+            User student = userOpt.get();
+            List<Enrollment> enrollments = enrollmentRepository.findByStudent(student);
+            
+            List<CourseResponse> courseResponses = enrollments.stream()
+                .map(enrollment -> {
+                    Course course = enrollment.getCourse();
+                    return new CourseResponse(
+                        course.getId(),
+                        course.getTitle(),
+                        course.getDescription(),
+                        course.getImageUrl(),
+                        course.getCategory(),
+                        course.getInstructor().getId(),
+                        course.getInstructor().getFullName(),
+                        course.getCreatedAt(),
+                        course.getUpdatedAt()
+                    );
+                })
+                .collect(Collectors.toList());
+                
+            return ResponseEntity.ok(courseResponses);
+        } else {
+            return ResponseEntity.status(404).body("User not found");
+        }
+    }
+    
+    @PostMapping("/enroll")
+    public ResponseEntity<?> enrollInCourse(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody EnrollmentRequest enrollmentRequest) {
+        
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+        
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+        
+        User student = userOpt.get();
+        Long courseId = enrollmentRequest.getCourseId();
+        
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+        
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+        
+        Course course = courseOpt.get();
+        
+        // Check if already enrolled
+        if (enrollmentRepository.existsByStudentAndCourse(student, course)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("You are already enrolled in this course"));
+        }
+        
+        // Create enrollment
+        Enrollment enrollment = new Enrollment();
+        enrollment.setStudent(student);
+        enrollment.setCourse(course);
+        
+        enrollmentRepository.save(enrollment);
+        
+        return ResponseEntity.ok(new MessageResponse("Successfully enrolled in course: " + course.getTitle()));
     }
 
     @GetMapping("/assignments")
@@ -86,6 +168,7 @@ public class StudentController {
             response.put("username", userData.getUsername());
             response.put("email", userData.getEmail());
             response.put("fullName", userData.getFullName());
+            response.put("phoneNumber", userData.getPhoneNumber());
             response.put("roles", userData.getRoles());
             
             return ResponseEntity.ok(response);
