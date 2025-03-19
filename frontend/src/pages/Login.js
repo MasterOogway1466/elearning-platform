@@ -33,9 +33,9 @@ const Login = () => {
     }
 
     AuthService.login(username, password)
-      .then(() => {
+      .then((response) => {
+        console.log("✅ Login successful"); // Debugging
         navigate('/profile');
-        window.location.reload();
       })
       .catch((error) => {
         const resMessage =
