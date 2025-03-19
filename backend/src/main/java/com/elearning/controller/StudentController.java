@@ -1,7 +1,10 @@
 package com.elearning.controller;
 
+import com.elearning.dto.CourseResponse;
 import com.elearning.dto.MessageResponse;
+import com.elearning.model.Course;
 import com.elearning.model.User;
+import com.elearning.repository.CourseRepository;
 import com.elearning.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -11,8 +14,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "http://localhost:3000", maxAge = 3600)
 @RestController
@@ -22,6 +27,9 @@ public class StudentController {
 
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private CourseRepository courseRepository;
 
     @GetMapping("/dashboard")
     public ResponseEntity<?> getStudentDashboard() {
@@ -30,7 +38,23 @@ public class StudentController {
 
     @GetMapping("/courses")
     public ResponseEntity<?> getStudentCourses() {
-        return ResponseEntity.ok(new MessageResponse("Student Courses"));
+        List<Course> allCourses = courseRepository.findAll();
+        
+        List<CourseResponse> courseResponses = allCourses.stream()
+            .map(course -> new CourseResponse(
+                course.getId(),
+                course.getTitle(),
+                course.getDescription(),
+                course.getImageUrl(),
+                course.getCategory(),
+                course.getInstructor().getId(),
+                course.getInstructor().getFullName(),
+                course.getCreatedAt(),
+                course.getUpdatedAt()
+            ))
+            .collect(Collectors.toList());
+            
+        return ResponseEntity.ok(courseResponses);
     }
 
     @GetMapping("/assignments")

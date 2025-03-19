@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import AuthService from '../services/auth.service';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
 const Register = () => {
@@ -10,11 +11,15 @@ const Register = () => {
   const [role, setRole] = useState('student'); // Default role
   const [successful, setSuccessful] = useState(false);
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({
     username: '',
     email: '',
     password: ''
   });
+
+  const navigate = useNavigate();
+  const { register, login } = useAuth();
 
   const onChangeUsername = (e) => {
     const value = e.target.value;
@@ -92,32 +97,50 @@ const Register = () => {
     return isValid;
   };
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
 
     setMessage('');
     setSuccessful(false);
+    setLoading(true);
 
     if (!validateForm()) {
+      setLoading(false);
       return;
     }
 
-    AuthService.register(username, email, password, fullName, role)
-      .then((response) => {
-        setMessage(response.data.message);
-        setSuccessful(true);
-      })
-      .catch((error) => {
-        const resMessage =
-          (error.response &&
-            error.response.data &&
-            error.response.data.message) ||
-          error.message ||
-          error.toString();
+    try {
+      const response = await register(username, email, password, fullName, role);
+      setMessage(response.data.message || 'Registration successful! You can now login.');
+      setSuccessful(true);
+      
+      // Auto-login after successful registration
+      setTimeout(async () => {
+        try {
+          await login(username, password);
+          if (role === 'instructor') {
+            navigate('/instructor-dashboard');
+          } else {
+            navigate('/student-dashboard');
+          }
+        } catch (loginError) {
+          // If auto-login fails, redirect to login page
+          navigate('/login');
+        }
+      }, 2000); // Wait 2 seconds to show success message before auto-login
+    } catch (error) {
+      const resMessage =
+        (error.response &&
+          error.response.data &&
+          error.response.data.message) ||
+        error.message ||
+        error.toString();
 
-        setMessage(resMessage);
-        setSuccessful(false);
-      });
+      setMessage(resMessage);
+      setSuccessful(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -189,7 +212,13 @@ const Register = () => {
               </div>
 
               <div className="form-group">
-                <button className="btn btn-primary btn-block">Sign Up</button>
+                <button className="btn btn-primary btn-block" disabled={loading}>
+                  {loading ? (
+                    <span className="spinner-border spinner-border-sm"></span>
+                  ) : (
+                    <span>Sign Up</span>
+                  )}
+                </button>
               </div>
             </div>
           )}

@@ -1,56 +1,95 @@
- import React from 'react';
- import { Link } from 'react-router-dom';
- import './Home.css';
- 
- const InstructorDashboard = () => {
-   return (
-     <div className="home-container">
-       <section className="hero">
-         <div className="hero-content">
-           <h1>Welcome to E-Learning Platform</h1>
-           <p>Discover a world of knowledge with our comprehensive courses.</p>
-           <div className="hero-buttons">
-             <Link to="/courses" className="btn btn-primary">
-               Browse Courses
-             </Link>
-             <Link to="/register" className="btn btn-secondary">
-               Sign Up Now
-             </Link>
-           </div>
-         </div>
-       </section>
- 
-       <section className="features">
-         <div className="feature-card">
-           <div className="feature-icon">📚</div>
-           <h3>Diverse Courses</h3>
-           <p>Explore a wide range of courses across multiple disciplines.</p>
-         </div>
-         <div className="feature-card">
-           <div className="feature-icon">👨‍🏫</div>
-           <h3>Expert Instructors</h3>
-           <p>Learn from industry professionals and academic experts.</p>
-         </div>
-         <div className="feature-card">
-           <div className="feature-icon">🔄</div>
-           <h3>Interactive Learning</h3>
-           <p>Engage with interactive content and fellow students.</p>
-         </div>
-         <div className="feature-card">
-           <div className="feature-icon">🏆</div>
-           <h3>Certifications</h3>
-           <p>Earn recognized certificates upon course completion.</p>
-         </div>
-       </section>
- 
-       <section className="cta">
-         <h2>Ready to start your learning journey?</h2>
-         <Link to="/register" className="btn btn-primary">
-           Get Started
-         </Link>
-       </section>
-     </div>
-   );
- };
- 
- export default InstructorDashboard; 
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import authHeader from '../services/auth-header';
+import CreateCourse from '../components/course/CreateCourse';
+import CourseList from '../components/course/CourseList';
+import './Dashboard.css';
+
+const InstructorDashboard = () => {
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('myCourses');
+
+  const fetchCourses = async () => {
+    try {
+      const response = await axios.get(
+        'http://localhost:8080/api/instructor/courses',
+        { headers: authHeader() }
+      );
+      setCourses(response.data);
+      setError('');
+    } catch (err) {
+      setError('Failed to load courses. Please try again later.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const handleCourseCreated = (newCourse) => {
+    setCourses([...courses, newCourse]);
+    setActiveTab('myCourses');
+  };
+
+  return (
+    <div className="dashboard-container">
+      <h1>Instructor Dashboard</h1>
+      
+      <div className="dashboard-tabs">
+        <button
+          className={`tab-button ${activeTab === 'myCourses' ? 'active' : ''}`}
+          onClick={() => setActiveTab('myCourses')}
+        >
+          My Courses
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'createCourse' ? 'active' : ''}`}
+          onClick={() => setActiveTab('createCourse')}
+        >
+          Create Course
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'analytics' ? 'active' : ''}`}
+          onClick={() => setActiveTab('analytics')}
+        >
+          Analytics
+        </button>
+      </div>
+      
+      <div className="dashboard-content">
+        {activeTab === 'myCourses' && (
+          <div className="my-courses-section">
+            <h2>My Courses</h2>
+            {loading ? (
+              <p>Loading your courses...</p>
+            ) : error ? (
+              <div className="alert alert-danger">{error}</div>
+            ) : (
+              <CourseList courses={courses} />
+            )}
+          </div>
+        )}
+        
+        {activeTab === 'createCourse' && (
+          <div className="create-course-section">
+            <CreateCourse onSuccess={handleCourseCreated} />
+          </div>
+        )}
+        
+        {activeTab === 'analytics' && (
+          <div className="analytics-section">
+            <h2>Analytics</h2>
+            <p>Course analytics will be available here soon.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default InstructorDashboard; 

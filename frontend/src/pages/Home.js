@@ -1,8 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './Home.css';
 
 const Home = () => {
+  const { isLoggedIn, isInstructor, isStudent } = useAuth();
+
   return (
     <div className="home-container">
       <section className="hero">
@@ -10,12 +13,26 @@ const Home = () => {
           <h1>Welcome to E-Learning Platform</h1>
           <p>Discover a world of knowledge with our comprehensive courses.</p>
           <div className="hero-buttons">
-            <Link to="/courses" className="btn btn-primary">
-              Browse Courses
-            </Link>
-            <Link to="/register" className="btn btn-secondary">
-              Sign Up Now
-            </Link>
+            {isStudent ? (
+              <Link to="/student-dashboard" className="btn btn-primary">
+                Browse Courses
+              </Link>
+            ) : isInstructor ? (
+              <Link to="/instructor-dashboard" className="btn btn-primary">
+                Manage Courses
+              </Link>
+            ) : (
+              <>
+                <Link to="/courses" className="btn btn-primary">
+                  Browse Courses
+                </Link>
+                {!isLoggedIn && (
+                  <Link to="/register" className="btn btn-secondary">
+                    Sign Up Now
+                  </Link>
+                )}
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -43,12 +60,14 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="cta">
-        <h2>Ready to start your learning journey?</h2>
-        <Link to="/register" className="btn btn-primary">
-          Get Started
-        </Link>
-      </section>
+      {!isLoggedIn && (
+        <section className="cta">
+          <h2>Ready to start your learning journey?</h2>
+          <Link to="/register" className="btn btn-primary">
+            Get Started
+          </Link>
+        </section>
+      )}
     </div>
   );
 };

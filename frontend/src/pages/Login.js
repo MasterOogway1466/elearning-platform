@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AuthService from '../services/auth.service';
+import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
 const Login = () => {
@@ -10,6 +10,7 @@ const Login = () => {
   const [message, setMessage] = useState('');
   
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const onChangeUsername = (e) => {
     setUsername(e.target.value);
@@ -19,7 +20,7 @@ const Login = () => {
     setPassword(e.target.value);
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     
     setMessage('');
@@ -32,22 +33,29 @@ const Login = () => {
       return;
     }
 
-    AuthService.login(username, password)
-      .then((response) => {
-        console.log("✅ Login successful"); // Debugging
+    try {
+      const response = await login(username, password);
+      
+      // Redirect based on user role
+      if (response.roles.includes('ROLE_INSTRUCTOR')) {
+        navigate('/instructor-dashboard');
+      } else if (response.roles.includes('ROLE_STUDENT')) {
+        navigate('/student-dashboard');
+      } else {
         navigate('/profile');
-      })
-      .catch((error) => {
-        const resMessage =
-          (error.response &&
-            error.response.data &&
-            error.response.data.message) ||
-          error.message ||
-          error.toString();
+      }
+    } catch (error) {
+      const resMessage =
+        (error.response &&
+          error.response.data &&
+          error.response.data.message) ||
+        error.message ||
+        error.toString();
 
-        setLoading(false);
-        setMessage(resMessage);
-      });
+      setMessage(resMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

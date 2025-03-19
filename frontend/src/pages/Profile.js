@@ -1,27 +1,30 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import "./Home.css"; // Import the Home.css for feature-card styling
 
 const Profile = () => {
-  const [user, setUser] = useState(null);
+  const { currentUser, isLoggedIn, isInstructor, isStudent } = useAuth();
+  const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      const token = localStorage.getItem("authToken");
-
-      if (!token) {
-        setError("No authentication token found. Please login again.");
+      if (!isLoggedIn || !currentUser) {
+        setError("No authentication data found. Please login again.");
         setLoading(false);
         return;
       }
 
       try {
-        console.log("Fetching profile with token:", token.substring(0, 10) + "..."); // Debug log
+        const endpoint = isInstructor
+          ? "http://localhost:8080/api/instructor/profile"
+          : "http://localhost:8080/api/student/profile";
+
+        const token = currentUser.token;
         
-        // First try instructor endpoint
-        let response = await fetch("http://localhost:8080/api/instructor/profile", {
+        const response = await fetch(endpoint, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -31,44 +34,22 @@ const Profile = () => {
           credentials: "include"
         });
 
-        console.log("Instructor endpoint response:", response.status); // Debug log
-
-        // If instructor endpoint fails with 403 (forbidden), try student endpoint
-        if (response.status === 403) {
-          console.log("Trying student endpoint..."); // Debug log
-          response = await fetch("http://localhost:8080/api/student/profile", {
-            method: "GET",
-            headers: {
-              "Authorization": `Bearer ${token}`,
-              "Content-Type": "application/json",
-              "Accept": "application/json"
-            },
-            credentials: "include"
-          });
-        }
-
-        console.log("Final response status:", response.status); // Debug log
-
         if (response.ok) {
           const data = await response.json();
-          console.log("Profile data received:", data); // Debug log
-          setUser(data);
-          setLoading(false);
+          setUserData(data);
         } else {
           const errorText = await response.text();
-          console.error("Error response:", errorText); // Debug log
           setError(`Failed to fetch profile: ${response.status} - ${errorText}`);
-          setLoading(false);
         }
       } catch (error) {
-        console.error("Network error:", error); // Debug log
         setError(`Network error: ${error.message}`);
+      } finally {
         setLoading(false);
       }
     };
 
     fetchUserProfile();
-  }, []);
+  }, [isLoggedIn, currentUser, isInstructor, isStudent]);
 
   if (loading) {
     return <div className="text-center p-5">Loading profile...</div>;
@@ -80,7 +61,7 @@ const Profile = () => {
         <div className="alert alert-danger">
           <h4>Error</h4>
           <p>{error}</p>
-          {error.includes("No authentication token") && (
+          {error.includes("No authentication") && (
             <p>
               <Link to="/login" className="btn btn-primary">
                 Go to Login
@@ -92,12 +73,12 @@ const Profile = () => {
     );
   }
 
+  // Use either fetched userData or currentUser from context
+  const user = userData || currentUser;
+
   if (!user) {
     return <div className="text-center p-5">No profile data available.</div>;
   }
-
-  // Determine user role for display
-  const isInstructor = user.roles && user.roles.includes("ROLE_INSTRUCTOR");
 
   // Get initials for avatar
   const getInitials = () => {
