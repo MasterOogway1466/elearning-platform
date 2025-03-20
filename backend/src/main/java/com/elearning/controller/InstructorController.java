@@ -153,6 +153,51 @@ public class InstructorController {
         }
     }
 
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody Map<String, String> updateRequest) {
+        
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+        
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+        
+        User user = userOpt.get();
+        
+        // Update user details
+        if (updateRequest.containsKey("fullName")) {
+            user.setFullName(updateRequest.get("fullName"));
+        }
+        if (updateRequest.containsKey("email")) {
+            // Check if email is already in use by another user
+            if (!user.getEmail().equals(updateRequest.get("email")) && 
+                userRepository.existsByEmail(updateRequest.get("email"))) {
+                return ResponseEntity.badRequest().body("Email is already in use");
+            }
+            user.setEmail(updateRequest.get("email"));
+        }
+        if (updateRequest.containsKey("phoneNumber")) {
+            user.setPhoneNumber(updateRequest.get("phoneNumber"));
+        }
+        
+        User updatedUser = userRepository.save(user);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("username", updatedUser.getUsername());
+        response.put("email", updatedUser.getEmail());
+        response.put("fullName", updatedUser.getFullName());
+        response.put("phoneNumber", updatedUser.getPhoneNumber());
+        response.put("roles", updatedUser.getRoles());
+        
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/courses/{courseId}/students")
     public ResponseEntity<?> getCourseEnrolledStudents(
             @PathVariable Long courseId,
