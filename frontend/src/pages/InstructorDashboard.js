@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import authHeader from '../services/auth-header';
 import CreateCourse from '../components/course/CreateCourse';
+import EditCourse from '../components/course/EditCourse';
 import CourseList from '../components/course/CourseList';
 import EnrolledStudents from '../components/course/EnrolledStudents';
 import './Dashboard.css';
@@ -12,6 +13,7 @@ const InstructorDashboard = () => {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('myCourses');
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [courseToEdit, setCourseToEdit] = useState(null);
 
   const fetchCourses = async () => {
     try {
@@ -43,6 +45,23 @@ const InstructorDashboard = () => {
     setActiveTab('students');
   };
 
+  const handleEditCourse = (course) => {
+    setCourseToEdit(course);
+    setActiveTab('editCourse');
+  };
+
+  const handleCourseUpdated = (updatedCourse) => {
+    const updatedCourses = courses.map(course => 
+      course.id === updatedCourse.id ? updatedCourse : course
+    );
+    setCourses(updatedCourses);
+  };
+
+  const handleCancelEdit = () => {
+    setCourseToEdit(null);
+    setActiveTab('myCourses');
+  };
+
   return (
     <div className="dashboard-container">
       <h1>Instructor Dashboard</h1>
@@ -60,6 +79,14 @@ const InstructorDashboard = () => {
         >
           Create Course
         </button>
+        {courseToEdit && (
+          <button
+            className={`tab-button ${activeTab === 'editCourse' ? 'active' : ''}`}
+            onClick={() => setActiveTab('editCourse')}
+          >
+            Edit Course
+          </button>
+        )}
         {selectedCourse && (
           <button
             className={`tab-button ${activeTab === 'students' ? 'active' : ''}`}
@@ -81,7 +108,11 @@ const InstructorDashboard = () => {
           <div className="my-courses-section">
             <h2>My Courses</h2>
             {loading ? (
-              <p>Loading your courses...</p>
+              <div className="d-flex justify-content-center align-items-center py-5">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+              </div>
             ) : error ? (
               <div className="alert alert-danger">{error}</div>
             ) : (
@@ -115,10 +146,16 @@ const InstructorDashboard = () => {
                               </p>
                               <div className="course-actions">
                                 <button 
-                                  className="btn btn-primary"
+                                  className="btn btn-primary me-2"
                                   onClick={() => handleViewStudents(course.id)}
                                 >
-                                  View Enrolled Students
+                                  View Students
+                                </button>
+                                <button
+                                  className="btn btn-secondary"
+                                  onClick={() => handleEditCourse(course)}
+                                >
+                                  Edit Course
                                 </button>
                               </div>
                             </div>
@@ -134,22 +171,48 @@ const InstructorDashboard = () => {
         )}
         
         {activeTab === 'createCourse' && (
-          <div className="create-course-section">
-            <CreateCourse onSuccess={handleCourseCreated} />
+          <div className="create-course-section feature-card">
+            <div className="card-body p-4">
+              <CreateCourse onSuccess={handleCourseCreated} />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'editCourse' && courseToEdit && (
+          <div className="edit-course-section feature-card">
+            <div className="card-body p-4">
+              <EditCourse 
+                course={courseToEdit} 
+                onSuccess={handleCourseUpdated} 
+                onCancel={handleCancelEdit} 
+              />
+            </div>
           </div>
         )}
         
         {activeTab === 'students' && selectedCourse && (
           <div className="students-section">
-            <h2>Students Enrolled in {courses.find(c => c.id === selectedCourse)?.title}</h2>
-            <EnrolledStudents courseId={selectedCourse} />
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h2>Students Enrolled in {courses.find(c => c.id === selectedCourse)?.title}</h2>
+              <button 
+                className="btn btn-outline-primary" 
+                onClick={() => setActiveTab('myCourses')}
+              >
+                Back to Courses
+              </button>
+            </div>
+            <div className="feature-card" style={{ padding: 0, overflow: 'hidden' }}>
+              <EnrolledStudents courseId={selectedCourse} />
+            </div>
           </div>
         )}
         
         {activeTab === 'analytics' && (
-          <div className="analytics-section">
-            <h2>Analytics</h2>
-            <p>Course analytics will be available here soon.</p>
+          <div className="analytics-section feature-card">
+            <div className="card-body p-4">
+              <h2>Analytics</h2>
+              <p>Course analytics will be available here soon.</p>
+            </div>
           </div>
         )}
       </div>

@@ -96,7 +96,7 @@ const Profile = () => {
     <div className="home-container" style={{ paddingTop: "40px", paddingBottom: "40px" }}>
       <div className="feature-card" style={{ maxWidth: "600px", margin: "0 auto", padding: "0" }}>
         <div className="card-header bg-primary text-white" style={{ padding: "20px", borderTopLeftRadius: "8px", borderTopRightRadius: "8px" }}>
-          <h2>{isInstructor ? "Instructor" : "Student"} Profile</h2>
+          <h2>{isInstructor ? "Instructor" : "Student"}</h2>
         </div>
         
         <div style={{ padding: "30px" }}>
@@ -132,6 +132,10 @@ const Profile = () => {
             border: "1px solid #e9ecef"
           }}>
             <div className="row mb-3">
+              <div className="col-md-4" style={{ fontWeight: "bold" }}>Full Name:</div>
+              <div className="col-md-8">{user.fullName}</div>
+            </div>
+            <div className="row mb-3">
               <div className="col-md-4" style={{ fontWeight: "bold" }}>Username:</div>
               <div className="col-md-8">{user.username}</div>
             </div>
@@ -140,19 +144,15 @@ const Profile = () => {
               <div className="col-md-8">{user.email}</div>
             </div>
             <div className="row mb-3">
-              <div className="col-md-4" style={{ fontWeight: "bold" }}>Full Name:</div>
-              <div className="col-md-8">{user.fullName}</div>
-            </div>
-            <div className="row mb-3">
               <div className="col-md-4" style={{ fontWeight: "bold" }}>Phone Number:</div>
               <div className="col-md-8">{user.phoneNumber || 'Not provided'}</div>
             </div>
-            <div className="row mb-3">
+            {/* <div className="row mb-3">
               <div className="col-md-4" style={{ fontWeight: "bold" }}>Role:</div>
               <div className="col-md-8">
                 {user.roles ? user.roles.map(role => role.replace('ROLE_', '')).join(', ') : 'N/A'}
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
