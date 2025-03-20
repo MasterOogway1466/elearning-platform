@@ -178,7 +178,7 @@ const StudentDashboard = () => {
             ) : filteredEnrolledCourses.length === 0 ? (
               <p>No courses match your search criteria.</p>
             ) : (
-              <CourseList courses={filteredEnrolledCourses} />
+              <CourseList courses={filteredEnrolledCourses} isEnrolledView={true} />
             )}
           </div>
         )}

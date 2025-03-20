@@ -49,6 +49,11 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
     setLoading(true);
     setError('');
     
+    // Debug logging
+    console.log('Course being edited:', course);
+    console.log('Course ID:', course.id);
+    console.log('Course data being sent:', courseData);
+    
     try {
       // Update course data
       const response = await axios.put(
@@ -56,6 +61,8 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
         courseData,
         { headers: authHeader() }
       );
+      
+      console.log('Response from server:', response.data);
       
       setSuccess(true);
       
@@ -72,6 +79,8 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
       }, 2000);
       
     } catch (err) {
+      console.error('Error updating course:', err);
+      console.error('Error response:', err.response);
       setError(err.response?.data?.message || 'Failed to update course');
     } finally {
       setLoading(false);

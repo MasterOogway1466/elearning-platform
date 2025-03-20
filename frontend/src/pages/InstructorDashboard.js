@@ -14,6 +14,9 @@ const InstructorDashboard = () => {
   const [activeTab, setActiveTab] = useState('myCourses');
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courseToEdit, setCourseToEdit] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [categories, setCategories] = useState([]);
 
   const fetchCourses = async () => {
     try {
@@ -22,6 +25,11 @@ const InstructorDashboard = () => {
         { headers: authHeader() }
       );
       setCourses(response.data);
+      
+      // Extract unique categories from courses
+      const uniqueCategories = [...new Set(response.data.map(course => course.category))];
+      setCategories(uniqueCategories);
+      
       setError('');
     } catch (err) {
       setError('Failed to load courses. Please try again later.');
@@ -46,21 +54,49 @@ const InstructorDashboard = () => {
   };
 
   const handleEditCourse = (course) => {
+    console.log('Course being set for editing:', course);
     setCourseToEdit(course);
     setActiveTab('editCourse');
   };
 
   const handleCourseUpdated = (updatedCourse) => {
+    console.log('Updated course received:', updatedCourse);
     const updatedCourses = courses.map(course => 
       course.id === updatedCourse.id ? updatedCourse : course
     );
     setCourses(updatedCourses);
+    setActiveTab('myCourses');
   };
 
   const handleCancelEdit = () => {
     setCourseToEdit(null);
     setActiveTab('myCourses');
   };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleCategoryChange = (e) => {
+    setSelectedCategory(e.target.value);
+  };
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('');
+  };
+
+  // Filter courses based on search term and category
+  const filterCourses = (courseList) => {
+    return courseList.filter(course => {
+      const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          course.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === '' || course.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  };
+
+  const filteredCourses = filterCourses(courses);
 
   return (
     <div className="dashboard-container">
@@ -106,7 +142,41 @@ const InstructorDashboard = () => {
       <div className="dashboard-content">
         {activeTab === 'myCourses' && (
           <div className="my-courses-section">
-            <h2>My Courses</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2>My Courses</h2>
+              
+              {/* Search and filter inline */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Search courses"
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  style={{ width: '250px' }}
+                />
+                <select
+                  className="form-control"
+                  value={selectedCategory}
+                  onChange={handleCategoryChange}
+                  style={{ width: '150px' }}
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((category, index) => (
+                    <option key={index} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                <button 
+                  className="btn btn-sm btn-secondary"
+                  onClick={resetFilters}
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+
             {loading ? (
               <div className="d-flex justify-content-center align-items-center py-5">
                 <div className="spinner-border text-primary" role="status">
@@ -121,48 +191,48 @@ const InstructorDashboard = () => {
                   <div className="alert alert-info">
                     You haven't created any courses yet. Create your first course to get started.
                   </div>
+                ) : filteredCourses.length === 0 ? (
+                  <div className="alert alert-warning">
+                    No courses match your search criteria.
+                  </div>
                 ) : (
-                  <div>
-                    <div className="instructor-course-list">
-                      {courses.map(course => (
-                        <div className="instructor-course-item" key={course.id}>
-                          <div className="course-card">
-                            <div className="course-image">
-                              {course.imageUrl ? (
-                                <img src={course.imageUrl} alt={course.title} />
-                              ) : (
-                                <div className="default-course-image">
-                                  <span>{course.title.charAt(0)}</span>
-                                </div>
-                              )}
+                  <div className="courses-grid">
+                    {filteredCourses.map(course => (
+                      <div className="course-card" key={course.id}>
+                        <div className="course-image">
+                          {course.imageUrl ? (
+                            <img src={course.imageUrl} alt={course.title} />
+                          ) : (
+                            <div className="default-course-image">
+                              <span>{course.title.charAt(0)}</span>
                             </div>
-                            <div className="course-details">
-                              <h3>{course.title}</h3>
-                              <div className="course-category">{course.category}</div>
-                              <p className="course-description">
-                                {course.description.length > 100
-                                  ? `${course.description.substring(0, 100)}...`
-                                  : course.description}
-                              </p>
-                              <div className="course-actions">
-                                <button 
-                                  className="btn btn-primary me-2"
-                                  onClick={() => handleViewStudents(course.id)}
-                                >
-                                  View Students
-                                </button>
-                                <button
-                                  className="btn btn-secondary"
-                                  onClick={() => handleEditCourse(course)}
-                                >
-                                  Edit Course
-                                </button>
-                              </div>
-                            </div>
+                          )}
+                        </div>
+                        <div className="course-details">
+                          <h3>{course.title}</h3>
+                          <div className="course-category">{course.category}</div>
+                          <p className="course-description">
+                            {course.description.length > 100
+                              ? `${course.description.substring(0, 100)}...`
+                              : course.description}
+                          </p>
+                          <div className="course-actions">
+                            <button 
+                              className="btn btn-primary me-2"
+                              onClick={() => handleViewStudents(course.id)}
+                            >
+                              View Students
+                            </button>
+                            <button
+                              className="btn btn-secondary"
+                              onClick={() => handleEditCourse(course)}
+                            >
+                              Edit Course
+                            </button>
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </>

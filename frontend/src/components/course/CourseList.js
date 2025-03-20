@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const CourseList = ({ courses, onEnroll, showEnrollButton = false }) => {
+const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledView = false }) => {
   if (!courses || courses.length === 0) {
     return (
       <div className="courses-empty">
@@ -35,16 +35,24 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false }) => {
                   : course.description}
               </p>
               <div className="course-actions">
-                <Link to={`/courses/${course.id}`} className="btn btn-primary">
-                  View Course
-                </Link>
-                {showEnrollButton && (
-                  <button
-                    onClick={() => onEnroll(course.id)}
-                    className="btn btn-success"
-                  >
-                    Enroll Now
-                  </button>
+                {isEnrolledView ? (
+                  <Link to={`/student/course/${course.id}`} className="btn btn-success">
+                    Continue Learning
+                  </Link>
+                ) : (
+                  <>
+                    <Link to={`/courses/${course.id}`} className="btn btn-primary">
+                      View Course
+                    </Link>
+                    {showEnrollButton && (
+                      <button
+                        onClick={() => onEnroll(course.id)}
+                        className="btn btn-success"
+                      >
+                        Enroll Now
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>

@@ -23,12 +23,12 @@ const Header = () => {
               </li>
               {isInstructor && (
                 <li>
-                  <Link to="/instructor-dashboard">Instructor Dashboard</Link>
+                  <Link to="/instructor-dashboard">Dashboard</Link>
                 </li>
               )}
               {isStudent && (
                 <li>
-                  <Link to="/student-dashboard">Student Dashboard</Link>
+                  <Link to="/student-dashboard">Dashboard</Link>
                 </li>
               )}
               <li>

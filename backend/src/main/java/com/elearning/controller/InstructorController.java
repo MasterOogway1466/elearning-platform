@@ -203,4 +203,58 @@ public class InstructorController {
             
         return ResponseEntity.ok(studentDetails);
     }
+
+    @PutMapping("/courses/{courseId}")
+    public ResponseEntity<?> updateCourse(
+            @PathVariable Long courseId,
+            @RequestBody CourseRequest courseRequest,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+        
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+        
+        User instructor = userOpt.get();
+        
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+        
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+        
+        Course course = courseOpt.get();
+        
+        // Check if the instructor is the owner of this course
+        if (!course.getInstructor().getId().equals(instructor.getId())) {
+            return ResponseEntity.status(403).body("You are not authorized to update this course");
+        }
+        
+        // Update course details
+        course.setTitle(courseRequest.getTitle());
+        course.setDescription(courseRequest.getDescription());
+        course.setImageUrl(courseRequest.getImageUrl());
+        course.setCategory(courseRequest.getCategory());
+        
+        Course updatedCourse = courseRepository.save(course);
+        
+        CourseResponse response = new CourseResponse(
+            updatedCourse.getId(),
+            updatedCourse.getTitle(),
+            updatedCourse.getDescription(),
+            updatedCourse.getImageUrl(),
+            updatedCourse.getCategory(),
+            updatedCourse.getInstructor().getId(),
+            updatedCourse.getInstructor().getFullName(),
+            updatedCourse.getCreatedAt(),
+            updatedCourse.getUpdatedAt()
+        );
+        
+        return ResponseEntity.ok(response);
+    }
 }
