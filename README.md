@@ -2,7 +2,7 @@
 
 ### Prerequisites
 
-- Java 17 or higher
+- Java 17 or Java 21
 - Maven
 - Node.js and npm
 - PostgreSQL
