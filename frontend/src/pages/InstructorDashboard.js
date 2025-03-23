@@ -6,9 +6,10 @@ import EditCourse from '../components/course/EditCourse';
 import CourseList from '../components/course/CourseList';
 import EnrolledStudents from '../components/course/EnrolledStudents';
 import './Dashboard.css';
+import { Link } from 'react-router-dom';
 
 const InstructorDashboard = () => {
-  const [courses, setCourses] = useState([]);
+  const [myCourses, setMyCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('myCourses');
@@ -17,34 +18,69 @@ const InstructorDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [categories, setCategories] = useState([]);
+  const [allCourses, setAllCourses] = useState([]);
 
-  const fetchCourses = async () => {
+  const fetchMyCourses = async () => {
     try {
       const response = await axios.get(
         'http://localhost:8080/api/instructor/courses',
         { headers: authHeader() }
       );
-      setCourses(response.data);
+      setMyCourses(response.data);
+      setError('');
+    } catch (err) {
+      setError('Failed to load your courses. Please try again later.');
+      console.error(err);
+    }
+  };
+
+  const fetchAllCourses = async () => {
+    try {
+      const response = await axios.get(
+        'http://localhost:8080/api/instructor/all-courses',
+        { headers: authHeader() }
+      );
+      setAllCourses(response.data);
       
-      // Extract unique categories from courses
+      // Extract unique categories from all courses
       const uniqueCategories = [...new Set(response.data.map(course => course.category))];
       setCategories(uniqueCategories);
       
       setError('');
     } catch (err) {
-      setError('Failed to load courses. Please try again later.');
+      setError('Failed to load all courses. Please try again later.');
       console.error(err);
-    } finally {
-      setLoading(false);
+      
+      // Fallback: If we can't get all courses, at least use the instructor's courses
+      // for the categories and display
+      if (myCourses.length > 0) {
+        setAllCourses(myCourses);
+        const uniqueCategories = [...new Set(myCourses.map(course => course.category))];
+        setCategories(uniqueCategories);
+      }
     }
   };
 
   useEffect(() => {
-    fetchCourses();
+    const loadData = async () => {
+      setLoading(true);
+      await fetchMyCourses();
+      
+      try {
+        await fetchAllCourses();
+      } catch (error) {
+        console.error("Could not fetch all courses:", error);
+      }
+      
+      setLoading(false);
+    };
+    loadData();
   }, []);
 
   const handleCourseCreated = (newCourse) => {
-    setCourses([...courses, newCourse]);
+    setMyCourses([...myCourses, newCourse]);
+    // Also update all courses
+    setAllCourses([...allCourses, newCourse]);
     setActiveTab('myCourses');
   };
   
@@ -61,10 +97,17 @@ const InstructorDashboard = () => {
 
   const handleCourseUpdated = (updatedCourse) => {
     console.log('Updated course received:', updatedCourse);
-    const updatedCourses = courses.map(course => 
+    const updatedMyCourses = myCourses.map(course => 
       course.id === updatedCourse.id ? updatedCourse : course
     );
-    setCourses(updatedCourses);
+    setMyCourses(updatedMyCourses);
+    
+    // Also update in all courses
+    const updatedAllCourses = allCourses.map(course => 
+      course.id === updatedCourse.id ? updatedCourse : course
+    );
+    setAllCourses(updatedAllCourses);
+    
     setActiveTab('myCourses');
   };
 
@@ -96,7 +139,13 @@ const InstructorDashboard = () => {
     });
   };
 
-  const filteredCourses = filterCourses(courses);
+  // Check if a course belongs to the instructor
+  const isInstructorCourse = (courseId) => {
+    return myCourses.some(course => course.id === courseId);
+  };
+
+  const filteredMyCourses = filterCourses(myCourses);
+  const filteredAllCourses = filterCourses(allCourses);
 
   return (
     <div className="dashboard-container">
@@ -108,6 +157,12 @@ const InstructorDashboard = () => {
           onClick={() => setActiveTab('myCourses')}
         >
           My Courses
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'discover' ? 'active' : ''}`}
+          onClick={() => setActiveTab('discover')}
+        >
+          All Courses
         </button>
         <button
           className={`tab-button ${activeTab === 'createCourse' ? 'active' : ''}`}
@@ -187,17 +242,17 @@ const InstructorDashboard = () => {
               <div className="alert alert-danger">{error}</div>
             ) : (
               <>
-                {courses.length === 0 ? (
+                {myCourses.length === 0 ? (
                   <div className="alert alert-info">
                     You haven't created any courses yet. Create your first course to get started.
                   </div>
-                ) : filteredCourses.length === 0 ? (
+                ) : filteredMyCourses.length === 0 ? (
                   <div className="alert alert-warning">
                     No courses match your search criteria.
                   </div>
                 ) : (
                   <div className="courses-grid">
-                    {filteredCourses.map(course => (
+                    {filteredMyCourses.map(course => (
                       <div className="course-card" key={course.id}>
                         <div className="course-image">
                           {course.imageUrl ? (
@@ -240,6 +295,117 @@ const InstructorDashboard = () => {
           </div>
         )}
         
+        {activeTab === 'discover' && (
+          <div className="discover-section">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2>All Available Courses</h2>
+              
+              {/* Search and filter inline */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Search courses"
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  style={{ width: '250px' }}
+                />
+                <select
+                  className="form-control"
+                  value={selectedCategory}
+                  onChange={handleCategoryChange}
+                  style={{ width: '150px' }}
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((category, index) => (
+                    <option key={index} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                <button 
+                  className="btn btn-sm btn-secondary"
+                  onClick={resetFilters}
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+            
+            {loading ? (
+              <div className="d-flex justify-content-center align-items-center py-5">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="alert alert-danger">{error}</div>
+            ) : allCourses.length === 0 ? (
+              <div className="alert alert-info">
+                No courses available at the moment.
+              </div>
+            ) : filteredAllCourses.length === 0 ? (
+              <div className="alert alert-warning">
+                No courses match your search criteria.
+              </div>
+            ) : (
+              <div className="courses-grid">
+                {filteredAllCourses.map(course => (
+                  <div className="course-card" key={course.id} style={{ position: 'relative' }}>
+                    {isInstructorCourse(course.id) && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '10px',
+                        right: '10px',
+                        background: 'rgba(33, 150, 83, 0.8)',
+                        color: 'white',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}>
+                        Your Course
+                      </div>
+                    )}
+                    <div className="course-image">
+                      {course.imageUrl ? (
+                        <img src={course.imageUrl} alt={course.title} />
+                      ) : (
+                        <div className="default-course-image">
+                          <span>{course.title.charAt(0)}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="course-details">
+                      <h3>{course.title}</h3>
+                      <div className="course-category">{course.category}</div>
+                      <div className="course-instructor">By {course.instructorName}</div>
+                      <p className="course-description">
+                        {course.description.length > 100
+                          ? `${course.description.substring(0, 100)}...`
+                          : course.description}
+                      </p>
+                      <div className="course-actions">
+                        <Link to={`/courses/${course.id}`} className="btn btn-primary">
+                          View Course
+                        </Link>
+                        {isInstructorCourse(course.id) && (
+                          <button
+                            className="btn btn-secondary ms-2"
+                            onClick={() => handleEditCourse(course)}
+                          >
+                            Edit Course
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        
         {activeTab === 'createCourse' && (
           <div className="create-course-section feature-card">
             <div className="card-body p-4">
@@ -263,7 +429,7 @@ const InstructorDashboard = () => {
         {activeTab === 'students' && selectedCourse && (
           <div className="students-section">
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <h2>Students Enrolled in {courses.find(c => c.id === selectedCourse)?.title}</h2>
+              <h2>Students Enrolled in {myCourses.find(c => c.id === selectedCourse)?.title}</h2>
               <button 
                 className="btn btn-outline-primary" 
                 onClick={() => setActiveTab('myCourses')}

@@ -30,10 +30,10 @@ public class StudentController {
 
     @Autowired
     private UserRepository userRepository;
-    
+
     @Autowired
     private CourseRepository courseRepository;
-    
+
     @Autowired
     private EnrollmentRepository enrollmentRepository;
 
@@ -45,40 +45,9 @@ public class StudentController {
     @GetMapping("/courses")
     public ResponseEntity<?> getStudentCourses() {
         List<Course> allCourses = courseRepository.findAll();
-        
-        List<CourseResponse> courseResponses = allCourses.stream()
-            .map(course -> new CourseResponse(
-                course.getId(),
-                course.getTitle(),
-                course.getDescription(),
-                course.getImageUrl(),
-                course.getCategory(),
-                course.getInstructor().getId(),
-                course.getInstructor().getFullName(),
-                course.getCreatedAt(),
-                course.getUpdatedAt()
-            ))
-            .collect(Collectors.toList());
-            
-        return ResponseEntity.ok(courseResponses);
-    }
-    
-    @GetMapping("/enrolled-courses")
-    public ResponseEntity<?> getEnrolledCourses(@AuthenticationPrincipal UserDetails userDetails) {
-        if (userDetails == null) {
-            return ResponseEntity.status(401).body("Unauthorized");
-        }
 
-        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
-        
-        if (userOpt.isPresent()) {
-            User student = userOpt.get();
-            List<Enrollment> enrollments = enrollmentRepository.findByStudent(student);
-            
-            List<CourseResponse> courseResponses = enrollments.stream()
-                .map(enrollment -> {
-                    Course course = enrollment.getCourse();
-                    return new CourseResponse(
+        List<CourseResponse> courseResponses = allCourses.stream()
+                .map(course -> new CourseResponse(
                         course.getId(),
                         course.getTitle(),
                         course.getDescription(),
@@ -87,55 +56,84 @@ public class StudentController {
                         course.getInstructor().getId(),
                         course.getInstructor().getFullName(),
                         course.getCreatedAt(),
-                        course.getUpdatedAt()
-                    );
-                })
+                        course.getUpdatedAt()))
                 .collect(Collectors.toList());
-                
-            return ResponseEntity.ok(courseResponses);
-        } else {
-            return ResponseEntity.status(404).body("User not found");
-        }
+
+        return ResponseEntity.ok(courseResponses);
     }
-    
-    @PostMapping("/enroll")
-    public ResponseEntity<?> enrollInCourse(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody EnrollmentRequest enrollmentRequest) {
-        
+
+    @GetMapping("/enrolled-courses")
+    public ResponseEntity<?> getEnrolledCourses(@AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {
             return ResponseEntity.status(401).body("Unauthorized");
         }
 
         Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
-        
+
+        if (userOpt.isPresent()) {
+            User student = userOpt.get();
+            List<Enrollment> enrollments = enrollmentRepository.findByStudent(student);
+
+            List<CourseResponse> courseResponses = enrollments.stream()
+                    .map(enrollment -> {
+                        Course course = enrollment.getCourse();
+                        return new CourseResponse(
+                                course.getId(),
+                                course.getTitle(),
+                                course.getDescription(),
+                                course.getImageUrl(),
+                                course.getCategory(),
+                                course.getInstructor().getId(),
+                                course.getInstructor().getFullName(),
+                                course.getCreatedAt(),
+                                course.getUpdatedAt());
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(courseResponses);
+        } else {
+            return ResponseEntity.status(404).body("User not found");
+        }
+    }
+
+    @PostMapping("/enroll")
+    public ResponseEntity<?> enrollInCourse(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody EnrollmentRequest enrollmentRequest) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
         if (!userOpt.isPresent()) {
             return ResponseEntity.status(404).body("User not found");
         }
-        
+
         User student = userOpt.get();
         Long courseId = enrollmentRequest.getCourseId();
-        
+
         Optional<Course> courseOpt = courseRepository.findById(courseId);
-        
+
         if (!courseOpt.isPresent()) {
             return ResponseEntity.status(404).body("Course not found");
         }
-        
+
         Course course = courseOpt.get();
-        
+
         // Check if already enrolled
         if (enrollmentRepository.existsByStudentAndCourse(student, course)) {
             return ResponseEntity.badRequest().body(new MessageResponse("You are already enrolled in this course"));
         }
-        
+
         // Create enrollment
         Enrollment enrollment = new Enrollment();
         enrollment.setStudent(student);
         enrollment.setCourse(course);
-        
+
         enrollmentRepository.save(enrollment);
-        
+
         return ResponseEntity.ok(new MessageResponse("Successfully enrolled in course: " + course.getTitle()));
     }
 
@@ -153,7 +151,7 @@ public class StudentController {
     public ResponseEntity<?> getStudentCertificates() {
         return ResponseEntity.ok(new MessageResponse("Student Certificates"));
     }
-    
+
     @GetMapping("/profile")
     public ResponseEntity<?> getUserProfile(@AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {
@@ -170,7 +168,7 @@ public class StudentController {
             response.put("fullName", userData.getFullName());
             response.put("phoneNumber", userData.getPhoneNumber());
             response.put("roles", userData.getRoles());
-            
+
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(404).body("User not found");
@@ -181,27 +179,27 @@ public class StudentController {
     public ResponseEntity<?> updateProfile(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody Map<String, String> updateRequest) {
-        
+
         if (userDetails == null) {
             return ResponseEntity.status(401).body("Unauthorized");
         }
 
         Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
-        
+
         if (!userOpt.isPresent()) {
             return ResponseEntity.status(404).body("User not found");
         }
-        
+
         User user = userOpt.get();
-        
+
         // Update user details
         if (updateRequest.containsKey("fullName")) {
             user.setFullName(updateRequest.get("fullName"));
         }
         if (updateRequest.containsKey("email")) {
             // Check if email is already in use by another user
-            if (!user.getEmail().equals(updateRequest.get("email")) && 
-                userRepository.existsByEmail(updateRequest.get("email"))) {
+            if (!user.getEmail().equals(updateRequest.get("email")) &&
+                    userRepository.existsByEmail(updateRequest.get("email"))) {
                 return ResponseEntity.badRequest().body("Email is already in use");
             }
             user.setEmail(updateRequest.get("email"));
@@ -209,16 +207,16 @@ public class StudentController {
         if (updateRequest.containsKey("phoneNumber")) {
             user.setPhoneNumber(updateRequest.get("phoneNumber"));
         }
-        
+
         User updatedUser = userRepository.save(user);
-        
+
         Map<String, Object> response = new HashMap<>();
         response.put("username", updatedUser.getUsername());
         response.put("email", updatedUser.getEmail());
         response.put("fullName", updatedUser.getFullName());
         response.put("phoneNumber", updatedUser.getPhoneNumber());
         response.put("roles", updatedUser.getRoles());
-        
+
         return ResponseEntity.ok(response);
     }
 }
