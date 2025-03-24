@@ -3,12 +3,15 @@ package com.elearning.model;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.HashSet;
 import java.util.Set;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "users")
 @NoArgsConstructor
@@ -29,9 +32,13 @@ public class User {
 
     @Column(nullable = false)
     private String fullName;
-    
+
     @Column
     private String phoneNumber;
+
+    @Column
+    @Enumerated(EnumType.STRING)
+    private UserType userType;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
@@ -39,4 +46,4 @@ public class User {
     private Set<String> roles = new HashSet<>();
 
     private boolean enabled = true;
-} 
+}

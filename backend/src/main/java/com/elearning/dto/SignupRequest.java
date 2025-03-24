@@ -1,5 +1,6 @@
 package com.elearning.dto;
 
+import com.elearning.model.UserType;
 import lombok.Data;
 
 import jakarta.validation.constraints.Email;
@@ -29,4 +30,6 @@ public class SignupRequest {
     private String phoneNumber;
 
     private Set<String> roles;
-} 
+
+    private UserType userType;
+}

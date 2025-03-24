@@ -4,11 +4,15 @@ import com.elearning.dto.CourseResponse;
 import com.elearning.dto.EnrollmentRequest;
 import com.elearning.dto.MessageResponse;
 import com.elearning.model.Course;
+import com.elearning.model.CourseType;
 import com.elearning.model.Enrollment;
 import com.elearning.model.User;
+import com.elearning.model.UserType;
 import com.elearning.repository.CourseRepository;
 import com.elearning.repository.EnrollmentRepository;
 import com.elearning.repository.UserRepository;
+import com.elearning.security.services.UserDetailsImpl;
+import com.elearning.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -37,22 +41,41 @@ public class StudentController {
     @Autowired
     private EnrollmentRepository enrollmentRepository;
 
+    @Autowired
+    private UserService userService;
+
     @GetMapping("/dashboard")
     public ResponseEntity<?> getStudentDashboard() {
         return ResponseEntity.ok(new MessageResponse("Student Dashboard Data"));
     }
 
     @GetMapping("/courses")
-    public ResponseEntity<?> getStudentCourses() {
+    public ResponseEntity<?> getStudentCourses(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        User student = userOpt.get();
         List<Course> allCourses = courseRepository.findAll();
 
-        List<CourseResponse> courseResponses = allCourses.stream()
+        // Filter courses based on user type
+        List<Course> filteredCourses = allCourses.stream()
+                .filter(course -> course.getCourseType().name().equals(student.getUserType().name()))
+                .collect(Collectors.toList());
+
+        List<CourseResponse> courseResponses = filteredCourses.stream()
                 .map(course -> new CourseResponse(
                         course.getId(),
                         course.getTitle(),
                         course.getDescription(),
                         course.getImageUrl(),
                         course.getCategory(),
+                        course.getCourseType(),
                         course.getInstructor().getId(),
                         course.getInstructor().getFullName(),
                         course.getCreatedAt(),
@@ -83,6 +106,7 @@ public class StudentController {
                                 course.getDescription(),
                                 course.getImageUrl(),
                                 course.getCategory(),
+                                course.getCourseType(),
                                 course.getInstructor().getId(),
                                 course.getInstructor().getFullName(),
                                 course.getCreatedAt(),
@@ -121,6 +145,12 @@ public class StudentController {
         }
 
         Course course = courseOpt.get();
+
+        // Check if course type matches student type
+        if (!course.getCourseType().name().equals(student.getUserType().name())) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("This course is not suitable for your user type"));
+        }
 
         // Check if already enrolled
         if (enrollmentRepository.existsByStudentAndCourse(student, course)) {
@@ -168,6 +198,7 @@ public class StudentController {
             response.put("fullName", userData.getFullName());
             response.put("phoneNumber", userData.getPhoneNumber());
             response.put("roles", userData.getRoles());
+            response.put("userType", userData.getUserType());
 
             return ResponseEntity.ok(response);
         } else {
@@ -216,7 +247,42 @@ public class StudentController {
         response.put("fullName", updatedUser.getFullName());
         response.put("phoneNumber", updatedUser.getPhoneNumber());
         response.put("roles", updatedUser.getRoles());
+        response.put("userType", updatedUser.getUserType());
 
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/update-user-type")
+    public ResponseEntity<?> updateUserType(@RequestBody String userType,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            if (userDetails == null) {
+                return ResponseEntity.status(401).body(new MessageResponse("Unauthorized: User not authenticated"));
+            }
+
+            // Remove quotes if present and trim whitespace
+            userType = userType.replaceAll("\"", "").trim();
+            UserType type = UserType.valueOf(userType);
+
+            // Get user by username instead of ID
+            Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+            if (!userOpt.isPresent()) {
+                return ResponseEntity.status(404).body(new MessageResponse("User not found"));
+            }
+
+            User updatedUser = userService.updateUserType(userOpt.get().getId(), type);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("username", updatedUser.getUsername());
+            response.put("email", updatedUser.getEmail());
+            response.put("fullName", updatedUser.getFullName());
+            response.put("phoneNumber", updatedUser.getPhoneNumber());
+            response.put("roles", updatedUser.getRoles());
+            response.put("userType", updatedUser.getUserType());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error updating user type: " + e.getMessage()));
+        }
     }
 }

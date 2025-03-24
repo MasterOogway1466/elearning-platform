@@ -10,6 +10,7 @@ const Register = () => {
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [role, setRole] = useState('student'); // Default role
+  const [userType, setUserType] = useState('STUDENT'); // Default user type
   const [successful, setSuccessful] = useState(false);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -77,6 +78,10 @@ const Register = () => {
     setRole(e.target.value);
   };
 
+  const onChangeUserType = (e) => {
+    setUserType(e.target.value);
+  };
+
   const validateForm = () => {
     const newErrors = {
       username: '',
@@ -133,7 +138,7 @@ const Register = () => {
     }
 
     try {
-      const response = await register(username, email, password, fullName, phoneNumber, role);
+      const response = await register(username, email, password, fullName, phoneNumber, role, userType);
       setMessage(response.data.message || 'Registration successful! You can now login.');
       setSuccessful(true);
       
@@ -247,13 +252,28 @@ const Register = () => {
                 </select>
               </div>
 
+              {role === 'student' && (
+                <div className="form-group">
+                  <label htmlFor="userType">User Type</label>
+                  <select
+                    className="form-control"
+                    name="userType"
+                    value={userType}
+                    onChange={onChangeUserType}
+                  >
+                    <option value="STUDENT">Student</option>
+                    <option value="PROFESSIONAL">Professional</option>
+                    <option value="PLACEMENT_TRAINING">Placement Training</option>
+                  </select>
+                </div>
+              )}
+
               <div className="form-group">
                 <button className="btn btn-primary btn-block" disabled={loading}>
-                  {loading ? (
+                  {loading && (
                     <span className="spinner-border spinner-border-sm"></span>
-                  ) : (
-                    <span>Sign Up</span>
                   )}
+                  Sign Up
                 </button>
               </div>
             </div>

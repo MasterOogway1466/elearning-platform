@@ -6,6 +6,7 @@ import com.elearning.dto.MessageResponse;
 import com.elearning.dto.SignupRequest;
 import com.elearning.model.Role;
 import com.elearning.model.User;
+import com.elearning.model.UserType;
 import com.elearning.repository.UserRepository;
 import com.elearning.security.JwtUtils;
 import com.elearning.security.UserDetailsImpl;
@@ -119,6 +120,15 @@ public class AuthController {
         }
 
         user.setRoles(roles);
+
+        // Set user type
+        if (signUpRequest.getUserType() != null) {
+            user.setUserType(signUpRequest.getUserType());
+        } else {
+            // Default to STUDENT if no user type is specified
+            user.setUserType(UserType.STUDENT);
+        }
+
         userRepository.save(user);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new MessageResponse("User registered successfully!"));

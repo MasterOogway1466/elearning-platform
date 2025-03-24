@@ -9,6 +9,7 @@ import com.elearning.model.User;
 import com.elearning.repository.CourseRepository;
 import com.elearning.repository.EnrollmentRepository;
 import com.elearning.repository.UserRepository;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -61,6 +62,7 @@ public class InstructorController {
                             course.getDescription(),
                             course.getImageUrl(),
                             course.getCategory(),
+                            course.getCourseType(),
                             course.getInstructor().getId(),
                             course.getInstructor().getFullName(),
                             course.getCreatedAt(),
@@ -94,6 +96,7 @@ public class InstructorController {
                         course.getDescription(),
                         course.getImageUrl(),
                         course.getCategory(),
+                        course.getCourseType(),
                         course.getInstructor().getId(),
                         course.getInstructor().getFullName(),
                         course.getCreatedAt(),
@@ -122,6 +125,7 @@ public class InstructorController {
             newCourse.setDescription(courseRequest.getDescription());
             newCourse.setImageUrl(courseRequest.getImageUrl());
             newCourse.setCategory(courseRequest.getCategory());
+            newCourse.setCourseType(courseRequest.getCourseType());
             newCourse.setInstructor(user);
 
             Course savedCourse = courseRepository.save(newCourse);
@@ -132,6 +136,7 @@ public class InstructorController {
                     savedCourse.getDescription(),
                     savedCourse.getImageUrl(),
                     savedCourse.getCategory(),
+                    savedCourse.getCourseType(),
                     savedCourse.getInstructor().getId(),
                     savedCourse.getInstructor().getFullName(),
                     savedCourse.getCreatedAt(),
@@ -280,30 +285,32 @@ public class InstructorController {
     @PutMapping("/courses/{courseId}")
     public ResponseEntity<?> updateCourse(
             @PathVariable Long courseId,
-            @RequestBody CourseRequest courseRequest,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody CourseRequest courseRequest) {
 
         if (userDetails == null) {
             return ResponseEntity.status(401).body("Unauthorized");
         }
 
         Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
 
         if (!userOpt.isPresent()) {
             return ResponseEntity.status(404).body("User not found");
         }
 
-        User instructor = userOpt.get();
-
-        Optional<Course> courseOpt = courseRepository.findById(courseId);
-
         if (!courseOpt.isPresent()) {
             return ResponseEntity.status(404).body("Course not found");
         }
 
+        User instructor = userOpt.get();
         Course course = courseOpt.get();
 
-        // Check if the instructor is the owner of this course
+        // Debug logging
+        System.out.println("Current course type: " + course.getCourseType());
+        System.out.println("New course type from request: " + courseRequest.getCourseType());
+
+        // Verify that the instructor owns this course
         if (!course.getInstructor().getId().equals(instructor.getId())) {
             return ResponseEntity.status(403).body("You are not authorized to update this course");
         }
@@ -313,8 +320,15 @@ public class InstructorController {
         course.setDescription(courseRequest.getDescription());
         course.setImageUrl(courseRequest.getImageUrl());
         course.setCategory(courseRequest.getCategory());
+        course.setCourseType(courseRequest.getCourseType());
+
+        // Debug logging
+        System.out.println("Course type after setting: " + course.getCourseType());
 
         Course updatedCourse = courseRepository.save(course);
+
+        // Debug logging
+        System.out.println("Course type after saving: " + updatedCourse.getCourseType());
 
         CourseResponse response = new CourseResponse(
                 updatedCourse.getId(),
@@ -322,6 +336,7 @@ public class InstructorController {
                 updatedCourse.getDescription(),
                 updatedCourse.getImageUrl(),
                 updatedCourse.getCategory(),
+                updatedCourse.getCourseType(),
                 updatedCourse.getInstructor().getId(),
                 updatedCourse.getInstructor().getFullName(),
                 updatedCourse.getCreatedAt(),

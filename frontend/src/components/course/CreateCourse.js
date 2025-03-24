@@ -7,7 +7,8 @@ const CreateCourse = ({ onSuccess }) => {
     title: '',
     description: '',
     imageUrl: '',
-    category: ''
+    category: '',
+    courseType: 'STUDENT' // Default course type
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,7 +39,8 @@ const CreateCourse = ({ onSuccess }) => {
         title: '',
         description: '',
         imageUrl: '',
-        category: ''
+        category: '',
+        courseType: 'STUDENT'
       });
       
       if (onSuccess) {
@@ -125,6 +127,22 @@ const CreateCourse = ({ onSuccess }) => {
             <option value="Marketing">Marketing</option>
             <option value="Finance">Finance</option>
             <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="courseType">Course Type</label>
+          <select
+            className="form-control"
+            id="courseType"
+            name="courseType"
+            value={courseData.courseType}
+            onChange={handleChange}
+            required
+          >
+            <option value="STUDENT">Student</option>
+            <option value="PROFESSIONAL">Professional</option>
+            <option value="PLACEMENT_TRAINING">Placement Training</option>
           </select>
         </div>
         

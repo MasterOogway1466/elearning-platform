@@ -3,11 +3,14 @@ package com.elearning.model;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "courses")
 @NoArgsConstructor
@@ -28,6 +31,10 @@ public class Course {
     @Column(nullable = false)
     private String category;
 
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private CourseType courseType;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "instructor_id", nullable = false)
     private User instructor;
@@ -46,4 +53,4 @@ public class Course {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-} 
+}

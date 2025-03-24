@@ -1,6 +1,8 @@
 package com.elearning.dto;
 
+import com.elearning.model.CourseType;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -18,4 +20,7 @@ public class CourseRequest {
 
     @NotBlank
     private String category;
-} 
+
+    @NotNull
+    private CourseType courseType;
+}

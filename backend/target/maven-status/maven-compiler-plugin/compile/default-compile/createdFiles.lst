@@ -1,7 +1,11 @@
+com\elearning\model\UserType.class
 com\elearning\dto\SignupRequest.class
 com\elearning\dto\CourseRequest.class
+com\elearning\service\UserService.class
+com\elearning\security\services\UserDetailsImpl.class
 com\elearning\controller\AuthController.class
 com\elearning\model\Course.class
+com\elearning\model\CourseType.class
 com\elearning\config\CorsConfig.class
 com\elearning\controller\TestController.class
 com\elearning\security\AuthTokenFilter.class

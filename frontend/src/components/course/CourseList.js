@@ -28,6 +28,11 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
             <div className="course-details">
               <h3>{course.title}</h3>
               <div className="course-category">{course.category}</div>
+              <div className="course-type">
+                {course.courseType === 'STUDENT' ? 'Student Course' :
+                 course.courseType === 'PROFESSIONAL' ? 'Professional Course' :
+                 'Placement Training Course'}
+              </div>
               <div className="course-instructor">By {course.instructorName}</div>
               <p className="course-description">
                 {course.description.length > 100

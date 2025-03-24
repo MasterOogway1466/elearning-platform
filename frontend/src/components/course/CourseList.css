@@ -66,6 +66,17 @@
   margin-bottom: 8px;
 }
 
+.course-type {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #e3f2fd;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #1976d2;
+  margin-bottom: 8px;
+  margin-left: 8px;
+}
+
 .course-instructor {
   font-size: 0.9rem;
   color: #666;

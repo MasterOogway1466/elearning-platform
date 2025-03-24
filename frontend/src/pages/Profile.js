@@ -14,7 +14,8 @@ const Profile = () => {
   const [editData, setEditData] = useState({
     fullName: "",
     email: "",
-    phoneNumber: ""
+    phoneNumber: "",
+    userType: ""
   });
   const [updateSuccess, setUpdateSuccess] = useState(false);
 
@@ -36,11 +37,12 @@ const Profile = () => {
         setEditData({
           fullName: response.data.fullName || "",
           email: response.data.email || "",
-          phoneNumber: response.data.phoneNumber || ""
+          phoneNumber: response.data.phoneNumber || "",
+          userType: response.data.userType || "STUDENT"
         });
         setError(null);
       } catch (error) {
-        setError(`Failed to fetch profile: ${error.message}`);
+        setError(error.response?.data?.message || error.message || "Failed to fetch profile");
       } finally {
         setLoading(false);
       }
@@ -59,7 +61,8 @@ const Profile = () => {
     setEditData({
       fullName: userData.fullName || "",
       email: userData.email || "",
-      phoneNumber: userData.phoneNumber || ""
+      phoneNumber: userData.phoneNumber || "",
+      userType: userData.userType || "STUDENT"
     });
     setError(null);
   };
@@ -82,9 +85,28 @@ const Profile = () => {
         ? "http://localhost:8080/api/instructor/profile"
         : "http://localhost:8080/api/student/profile";
 
+      // If user type is being updated, send it separately
+      if (isStudent && editData.userType !== userData.userType) {
+        await axios.put(
+          "http://localhost:8080/api/student/update-user-type",
+          editData.userType,
+          { 
+            headers: {
+              ...authHeader(),
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+      }
+
+      // Send other profile updates
       const response = await axios.put(
         endpoint,
-        editData,
+        {
+          fullName: editData.fullName,
+          email: editData.email,
+          phoneNumber: editData.phoneNumber
+        },
         { headers: authHeader() }
       );
 
@@ -92,7 +114,7 @@ const Profile = () => {
       setUpdateSuccess(true);
       setIsEditing(false);
     } catch (error) {
-      setError(error.response?.data || "Failed to update profile");
+      setError(error.response?.data?.message || error.message || "Failed to update profile");
     }
   };
 
@@ -106,7 +128,7 @@ const Profile = () => {
         <div className="alert alert-danger">
           <h4>Error</h4>
           <p>{error}</p>
-          {error.includes("No authentication") && (
+          {error === "No authentication data found. Please login again." && (
             <p>
               <Link to="/login" className="btn btn-primary">
                 Go to Login
@@ -236,6 +258,25 @@ const Profile = () => {
                     disabled
                   />
                 </div>
+                {isStudent && (
+                  <div className="mb-3">
+                    <label className="form-label">User Type</label>
+                    <select
+                      className="form-control"
+                      name="userType"
+                      value={editData.userType}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="STUDENT">Student</option>
+                      <option value="PROFESSIONAL">Professional</option>
+                      <option value="PLACEMENT_TRAINING">Placement Training</option>
+                    </select>
+                    <small className="text-muted">
+                      Note: Changing your user type will affect which courses are available to you.
+                    </small>
+                  </div>
+                )}
                 <div className="d-flex justify-content-end gap-2">
                   <button
                     type="button"
@@ -276,6 +317,16 @@ const Profile = () => {
                     {user.roles ? user.roles.map(role => role.replace('ROLE_', '')).join(', ') : 'N/A'}
                   </div>
                 </div>
+                {isStudent && (
+                  <div className="row mb-3">
+                    <div className="col-md-4" style={{ fontWeight: "bold" }}>User Type:</div>
+                    <div className="col-md-8">
+                      {user.userType === 'STUDENT' ? 'Student' :
+                       user.userType === 'PROFESSIONAL' ? 'Professional' :
+                       'Placement Training'}
+                    </div>
+                  </div>
+                )}
                 {!isEditing && (
                   <div className="d-flex justify-content-end mt-4">
                     <button 
