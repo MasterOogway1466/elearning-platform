@@ -1,5 +1,6 @@
 package com.elearning.dto;
 
+import com.elearning.model.CourseStatus;
 import com.elearning.model.CourseType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,6 +18,7 @@ public class CourseResponse {
     private String imageUrl;
     private String category;
     private CourseType courseType;
+    private CourseStatus status;
     private Long instructorId;
     private String instructorName;
     private LocalDateTime createdAt;

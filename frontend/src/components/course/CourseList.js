@@ -1,8 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
+import './CourseList.css';
 
 const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledView = false }) => {
-  if (!courses || courses.length === 0) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/api/courses', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+      });
+      // Filter only approved courses
+      const approvedCourses = response.data.filter(course => course.status === 'APPROVED');
+      setCourses(approvedCourses);
+      
+      // Extract unique categories from approved courses
+      const uniqueCategories = [...new Set(approvedCourses.map(course => course.category))];
+      setCategories(uniqueCategories);
+      
+      setLoading(false);
+    } catch (error) {
+      setError('Failed to fetch courses');
+      setLoading(false);
+    }
+  };
+
+  // Filter only approved courses
+  const filteredCourses = courses.filter(course => course.status === 'APPROVED');
+
+  if (!filteredCourses || filteredCourses.length === 0) {
     return (
       <div className="courses-empty">
         <h3>No courses available</h3>
@@ -14,7 +49,7 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
   return (
     <div className="courses-container">
       <div className="courses-grid">
-        {courses.map(course => (
+        {filteredCourses.map(course => (
           <div className="course-card" key={course.id}>
             <div className="course-image">
               {course.imageUrl ? (

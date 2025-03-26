@@ -3,10 +3,10 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import authHeader from "../services/auth-header";
-import "./Home.css"; // Import the Home.css for feature-card styling
+import "./Profile.css"; // Import the Profile-specific CSS
 
 const Profile = () => {
-  const { currentUser, isLoggedIn, isInstructor, isStudent } = useAuth();
+  const { currentUser, isLoggedIn, isInstructor, isStudent, isAdmin } = useAuth();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -28,9 +28,14 @@ const Profile = () => {
       }
 
       try {
-        const endpoint = isInstructor
-          ? "http://localhost:8080/api/instructor/profile"
-          : "http://localhost:8080/api/student/profile";
+        let endpoint;
+        if (isAdmin) {
+          endpoint = "http://localhost:8080/api/admin/profile";
+        } else if (isInstructor) {
+          endpoint = "http://localhost:8080/api/instructor/profile";
+        } else {
+          endpoint = "http://localhost:8080/api/student/profile";
+        }
 
         const response = await axios.get(endpoint, { headers: authHeader() });
         setUserData(response.data);
@@ -49,7 +54,7 @@ const Profile = () => {
     };
 
     fetchUserProfile();
-  }, [isLoggedIn, currentUser, isInstructor]);
+  }, [isLoggedIn, currentUser, isInstructor, isAdmin, isStudent]);
 
   const handleEditClick = () => {
     setIsEditing(true);
@@ -81,9 +86,14 @@ const Profile = () => {
     setUpdateSuccess(false);
 
     try {
-      const endpoint = isInstructor
-        ? "http://localhost:8080/api/instructor/profile"
-        : "http://localhost:8080/api/student/profile";
+      let endpoint;
+      if (isAdmin) {
+        endpoint = "http://localhost:8080/api/admin/profile";
+      } else if (isInstructor) {
+        endpoint = "http://localhost:8080/api/instructor/profile";
+      } else {
+        endpoint = "http://localhost:8080/api/student/profile";
+      }
 
       // If user type is being updated, send it separately
       if (isStudent && editData.userType !== userData.userType) {
@@ -118,13 +128,25 @@ const Profile = () => {
     }
   };
 
+  // Get initials for avatar
+  const getInitials = () => {
+    if (userData.fullName) {
+      const names = userData.fullName.split(' ');
+      if (names.length >= 2) {
+        return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
+      }
+      return userData.fullName.charAt(0).toUpperCase();
+    }
+    return userData.username.charAt(0).toUpperCase();
+  };
+
   if (loading) {
     return <div className="text-center p-5">Loading profile...</div>;
   }
 
   if (error) {
     return (
-      <div className="container mt-5">
+      <div className="profile-container">
         <div className="alert alert-danger">
           <h4>Error</h4>
           <p>{error}</p>
@@ -147,198 +169,143 @@ const Profile = () => {
     return <div className="text-center p-5">No profile data available.</div>;
   }
 
-  // Get initials for avatar
-  const getInitials = () => {
-    if (user.fullName) {
-      const names = user.fullName.split(' ');
-      if (names.length >= 2) {
-        return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
-      }
-      return user.fullName.charAt(0).toUpperCase();
-    }
-    return user.username.charAt(0).toUpperCase();
-  };
-
   return (
-    <div className="home-container" style={{ paddingTop: "40px", paddingBottom: "40px" }}>
-      <div className="feature-card" style={{ maxWidth: "600px", margin: "0 auto", padding: "0" }}>
-        <div className="card-header bg-primary text-white" style={{ padding: "20px", borderTopLeftRadius: "8px", borderTopRightRadius: "8px" }}>
-          <div className="d-flex justify-content-between align-items-center">
-            <h2>{isInstructor ? "Instructor" : "Student"}</h2>
-          </div>
-        </div>
-        
-        <div style={{ padding: "30px" }}>
-          {updateSuccess && (
-            <div className="alert alert-success mb-4">
-              Profile updated successfully!
-            </div>
-          )}
-
-          {/* Profile Picture Circle */}
-          <div style={{ 
-            display: "flex", 
-            justifyContent: "center", 
-            marginBottom: "25px" 
-          }}>
-            <div style={{ 
-              width: "120px", 
-              height: "120px", 
-              borderRadius: "50%", 
-              backgroundColor: "#007bff", 
-              color: "white", 
-              display: "flex", 
-              alignItems: "center", 
-              justifyContent: "center",
-              fontSize: "3rem",
-              fontWeight: "bold",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)"
-            }}>
-              {getInitials()}
+    <div className="main-content">
+      <div className="profile-container">
+        <div className="profile-card">
+          <div className="profile-header">
+            <div className="d-flex justify-content-between align-items-center">
+              <h2>{isAdmin ? "Admin" : isInstructor ? "Instructor" : "Student"} Profile</h2>
             </div>
           </div>
+          
+          <div className="profile-content">
+            {updateSuccess && (
+              <div className="alert alert-success mb-4">
+                Profile updated successfully!
+              </div>
+            )}
 
-          {/* Inner box for user details */}
-          <div style={{
-            backgroundColor: "#f8f9fa",
-            borderRadius: "8px",
-            padding: "20px",
-            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
-            border: "1px solid #e9ecef"
-          }}>
-            {isEditing ? (
-              <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label className="form-label">Username</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={user.username}
-                    disabled
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Full Name</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="fullName"
-                    value={editData.fullName}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Email</label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    name="email"
-                    value={editData.email}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Phone Number</label>
-                  <input
-                    type="tel"
-                    className="form-control"
-                    name="phoneNumber"
-                    value={editData.phoneNumber}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Role</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={user.roles ? user.roles.map(role => role.replace('ROLE_', '')).join(', ') : 'N/A'}
-                    disabled
-                  />
-                </div>
-                {isStudent && (
+            {/* Profile Picture Circle */}
+            <div className="profile-avatar">
+              <div className="avatar-circle">
+                {getInitials()}
+              </div>
+            </div>
+
+            {/* Inner box for user details */}
+            <div className="profile-details">
+              {isEditing ? (
+                <form onSubmit={handleSubmit}>
                   <div className="mb-3">
-                    <label className="form-label">User Type</label>
-                    <select
+                    <label className="form-label">Username</label>
+                    <input
+                      type="text"
                       className="form-control"
-                      name="userType"
-                      value={editData.userType}
+                      value={user.username}
+                      disabled
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label">Full Name</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      name="fullName"
+                      value={editData.fullName}
                       onChange={handleInputChange}
                       required
-                    >
-                      <option value="STUDENT">Student</option>
-                      <option value="PROFESSIONAL">Professional</option>
-                      <option value="PLACEMENT_TRAINING">Placement Training</option>
-                    </select>
-                    <small className="text-muted">
-                      Note: Changing your user type will affect which courses are available to you.
-                    </small>
+                    />
                   </div>
-                )}
-                <div className="d-flex justify-content-end gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleCancelEdit}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <>
-                <div className="row mb-3">
-                  <div className="col-md-4" style={{ fontWeight: "bold" }}>Username:</div>
-                  <div className="col-md-8">{user.username}</div>
-                </div>
-                <div className="row mb-3">
-                  <div className="col-md-4" style={{ fontWeight: "bold" }}>Full Name:</div>
-                  <div className="col-md-8">{user.fullName}</div>
-                </div>
-                <div className="row mb-3">
-                  <div className="col-md-4" style={{ fontWeight: "bold" }}>Email:</div>
-                  <div className="col-md-8">{user.email}</div>
-                </div>
-                <div className="row mb-3">
-                  <div className="col-md-4" style={{ fontWeight: "bold" }}>Phone Number:</div>
-                  <div className="col-md-8">{user.phoneNumber || 'Not provided'}</div>
-                </div>
-                <div className="row mb-3">
-                  <div className="col-md-4" style={{ fontWeight: "bold" }}>Role:</div>
-                  <div className="col-md-8">
-                    {user.roles ? user.roles.map(role => role.replace('ROLE_', '')).join(', ') : 'N/A'}
+                  <div className="mb-3">
+                    <label className="form-label">Email</label>
+                    <input
+                      type="email"
+                      className="form-control"
+                      name="email"
+                      value={editData.email}
+                      onChange={handleInputChange}
+                      required
+                    />
                   </div>
-                </div>
-                {isStudent && (
-                  <div className="row mb-3">
-                    <div className="col-md-4" style={{ fontWeight: "bold" }}>User Type:</div>
-                    <div className="col-md-8">
-                      {user.userType === 'STUDENT' ? 'Student' :
-                       user.userType === 'PROFESSIONAL' ? 'Professional' :
-                       'Placement Training'}
+                  <div className="mb-3">
+                    <label className="form-label">Phone Number</label>
+                    <input
+                      type="tel"
+                      className="form-control"
+                      name="phoneNumber"
+                      value={editData.phoneNumber}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+
+                  {isStudent && (
+                    <div className="mb-3">
+                      <label className="form-label">User Type</label>
+                      <select
+                        className="form-select"
+                        name="userType"
+                        value={editData.userType}
+                        onChange={handleInputChange}
+                      >
+                        <option value="STUDENT">General Student</option>
+                        <option value="STUDENT_PLUS">Premium Student</option>
+                      </select>
                     </div>
+                  )}
+
+                  <div className="profile-actions">
+                    <button type="submit" className="btn btn-success">
+                      Save Changes
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={handleCancelEdit}
+                    >
+                      Cancel
+                    </button>
                   </div>
-                )}
-                {!isEditing && (
-                  <div className="d-flex justify-content-end mt-4">
-                    <button 
+                </form>
+              ) : (
+                <>
+                  <div className="mb-3">
+                    <label className="fw-bold">Username:</label>
+                    <p>{user.username}</p>
+                  </div>
+                  <div className="mb-3">
+                    <label className="fw-bold">Full Name:</label>
+                    <p>{user.fullName}</p>
+                  </div>
+                  <div className="mb-3">
+                    <label className="fw-bold">Email:</label>
+                    <p>{user.email}</p>
+                  </div>
+                  <div className="mb-3">
+                    <label className="fw-bold">Phone Number:</label>
+                    <p>{user.phoneNumber || "Not provided"}</p>
+                  </div>
+                  {isStudent && (
+                    <div className="mb-3">
+                      <label className="fw-bold">User Type:</label>
+                      <p>
+                        {user.userType === "STUDENT_PLUS"
+                          ? "Premium Student"
+                          : "General Student"}
+                      </p>
+                    </div>
+                  )}
+                  <div className="profile-actions">
+                    <button
                       className="btn btn-primary"
                       onClick={handleEditClick}
                     >
                       Edit Profile
                     </button>
                   </div>
-                )}
-              </>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>

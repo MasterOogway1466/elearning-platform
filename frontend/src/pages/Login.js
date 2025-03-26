@@ -8,6 +8,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [successful, setSuccessful] = useState(true);
   
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -35,14 +36,16 @@ const Login = () => {
 
     try {
       const response = await login(username, password);
-      
+      setMessage('Login successful!');
+      setSuccessful(true);
+
       // Redirect based on user role
-      if (response.roles.includes('ROLE_INSTRUCTOR')) {
+      if (response.roles.includes('ROLE_ADMIN')) {
+        navigate('/admin-dashboard');
+      } else if (response.roles.includes('ROLE_INSTRUCTOR')) {
         navigate('/instructor-dashboard');
-      } else if (response.roles.includes('ROLE_STUDENT')) {
-        navigate('/student-dashboard');
       } else {
-        navigate('/profile');
+        navigate('/student-dashboard');
       }
     } catch (error) {
       const resMessage =
@@ -53,57 +56,60 @@ const Login = () => {
         error.toString();
 
       setMessage(resMessage);
+      setSuccessful(false);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h2>Login</h2>
-        
-        <form onSubmit={handleLogin}>
-          <div className="form-group">
-            <label htmlFor="username">Username</label>
-            <input
-              type="text"
-              className="form-control"
-              name="username"
-              value={username}
-              onChange={onChangeUsername}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              className="form-control"
-              name="password"
-              value={password}
-              onChange={onChangePassword}
-            />
-          </div>
-
-          <div className="form-group">
-            <button className="btn btn-primary btn-block" disabled={loading}>
-              {loading ? (
-                <span className="spinner-border spinner-border-sm"></span>
-              ) : (
-                <span>Login</span>
-              )}
-            </button>
-          </div>
-
-          {message && (
+    <div className="main-content">
+      <div className="auth-container">
+        <div className="auth-card">
+          <h2>Login</h2>
+          
+          <form onSubmit={handleLogin}>
             <div className="form-group">
-              <div className="alert alert-danger" role="alert">
-                {message}
-              </div>
+              <label htmlFor="username">Username</label>
+              <input
+                type="text"
+                className="form-control"
+                name="username"
+                value={username}
+                onChange={onChangeUsername}
+              />
             </div>
-          )}
-        </form>
+
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                className="form-control"
+                name="password"
+                value={password}
+                onChange={onChangePassword}
+              />
+            </div>
+
+            <div className="form-group">
+              <button className="btn btn-primary btn-block" disabled={loading}>
+                {loading ? (
+                  <span className="spinner-border spinner-border-sm"></span>
+                ) : (
+                  <span>Login</span>
+                )}
+              </button>
+            </div>
+
+            {message && (
+              <div className="form-group">
+                <div className="alert alert-danger" role="alert">
+                  {message}
+                </div>
+              </div>
+            )}
+          </form>
+        </div>
       </div>
     </div>
   );

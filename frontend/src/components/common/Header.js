@@ -1,54 +1,65 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import './Header.css';
 
 const Header = () => {
-  const { currentUser, isLoggedIn, logout, isInstructor, isStudent } = useAuth();
+  const { isLoggedIn, isInstructor, isStudent, isAdmin, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <header className="header">
-      <div className="logo">
-        <Link to="/">E-Learning Platform</Link>
-      </div>
-      <nav className="navigation">
-        <ul>
-          <li>
-            <Link to="/">Home</Link>
-          </li>
-          {isLoggedIn ? (
+      <div className="header-content">
+        <Link to="/" className="logo">
+          E-Learning Platform
+        </Link>
+
+        <nav className="nav-menu">
+          <Link to="/" className="nav-link">
+            Home
+          </Link>
+          
+          {!isLoggedIn ? (
             <>
-              <li>
-                <Link to="/profile">Profile</Link>
-              </li>
-              {isInstructor && (
-                <li>
-                  <Link to="/instructor-dashboard">Dashboard</Link>
-                </li>
-              )}
-              {isStudent && (
-                <li>
-                  <Link to="/student-dashboard">Dashboard</Link>
-                </li>
-              )}
-              <li>
-                <button onClick={logout} className="btn-logout">
-                  Logout
-                </button>
-              </li>
+              <Link to="/login" className="nav-link">
+                Login
+              </Link>
+              <Link to="/register" className="nav-link">
+                Register
+              </Link>
             </>
           ) : (
             <>
-              <li>
-                <Link to="/login">Login</Link>
-              </li>
-              <li>
-                <Link to="/register">Register</Link>
-              </li>
+              {isAdmin && (
+                <Link to="/admin-dashboard" className="nav-link">
+                  Admin Dashboard
+                </Link>
+              )}
+              {isInstructor && (
+                <Link to="/instructor-dashboard" className="nav-link">
+                  Instructor Dashboard
+                </Link>
+              )}
+              {isStudent && (
+                <Link to="/student-dashboard" className="nav-link">
+                  Student Dashboard
+                </Link>
+              )}
+              <Link to="/profile" className="nav-link">
+                Profile
+              </Link>
+              <button onClick={handleLogout} className="logout-btn">
+                Logout
+              </button>
             </>
           )}
-        </ul>
-      </nav>
+        </nav>
+      </div>
     </header>
   );
 };

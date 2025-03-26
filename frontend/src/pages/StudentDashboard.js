@@ -19,6 +19,7 @@ const StudentDashboard = () => {
   const [selectedUserType, setSelectedUserType] = useState(null);
   const [updateError, setUpdateError] = useState('');
   const [updateSuccess, setUpdateSuccess] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchUserType = async () => {
     try {
@@ -85,10 +86,16 @@ const StudentDashboard = () => {
 
   const handleUserTypeUpdate = async () => {
     try {
+      setIsUpdating(true);
       await axios.put(
         'http://localhost:8080/api/student/update-user-type',
-        selectedUserType,
-        { headers: authHeader() }
+        JSON.stringify(selectedUserType),
+        { 
+          headers: {
+            ...authHeader(),
+            'Content-Type': 'application/json'
+          }
+        }
       );
       setUpdateSuccess('User type updated successfully!');
       setUpdateError('');
@@ -101,8 +108,22 @@ const StudentDashboard = () => {
     } catch (err) {
       setUpdateError(err.response?.data?.message || 'Failed to update user type');
       setUpdateSuccess('');
+    } finally {
+      setIsUpdating(false);
     }
   };
+
+  // Add keyboard event listener for Esc key
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && showUserTypeModal) {
+        setShowUserTypeModal(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscKey);
+    return () => window.removeEventListener('keydown', handleEscKey);
+  }, [showUserTypeModal]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -156,238 +177,352 @@ const StudentDashboard = () => {
   const filteredAllCourses = filterCourses(courses);
 
   return (
-    <div className="dashboard-container">
-      <h1>Student Dashboard</h1>
-      
-      {/* Display user type and account type */}
-      {userType && (
-        <div className="user-type-banner mb-4">
-          <div className="alert alert-info">
-            <div>
-              <strong>Account Type:</strong> Student
-            </div>
-            <div>
-              <strong>User Type:</strong> {userType === 'STUDENT' ? 'Student' :
-                                       userType === 'PROFESSIONAL' ? 'Professional' :
-                                       'Placement Training'}
-            </div>
-            <button 
-              className="btn btn-sm btn-outline-primary mt-2"
-              onClick={() => {
-                setSelectedUserType(userType);
-                setShowUserTypeModal(true);
-              }}
-            >
-              Change User Type
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {/* User Type Update Modal */}
-      {showUserTypeModal && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Update User Type</h5>
-                <button 
-                  type="button" 
-                  className="btn-close" 
-                  onClick={() => setShowUserTypeModal(false)}
-                ></button>
+    <div className="main-content">
+      <div className="dashboard-container">
+        <h1>Student Dashboard</h1>
+        
+        {/* Display user type and account type */}
+        {userType && (
+          <div className="user-type-banner mb-4">
+            <div className="user-type-card">
+              <div className="user-type-info">
+                <i className="bi bi-person-circle me-2"></i>
+                <div>
+                  <h6 className="mb-1">Current User Type</h6>
+                  <span className="user-type-badge">
+                    {userType === 'STUDENT' ? 'Student' :
+                     userType === 'PROFESSIONAL' ? 'Professional' :
+                     'Placement Training'}
+                  </span>
+                </div>
               </div>
-              <div className="modal-body">
-                {updateSuccess && (
-                  <div className="alert alert-success">{updateSuccess}</div>
-                )}
-                {updateError && (
-                  <div className="alert alert-danger">{updateError}</div>
-                )}
-                <div className="form-group">
-                  <label>Select User Type</label>
-                  <select 
-                    className="form-control"
-                    value={selectedUserType}
-                    onChange={(e) => setSelectedUserType(e.target.value)}
+              <button 
+                className="btn btn-primary"
+                onClick={() => {
+                  setSelectedUserType(userType);
+                  setShowUserTypeModal(true);
+                }}
+              >
+                <i className="bi bi-pencil-square me-2"></i>
+                Change User Type
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* User Type Update Modal */}
+        {showUserTypeModal && (
+          <>
+            <div 
+              className="modal-backdrop"
+              onClick={() => setShowUserTypeModal(false)}
+            />
+            <div className="modal">
+              <div className="modal-content" style={{
+                border: 'none',
+                borderRadius: '15px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+                animation: 'slideIn 0.3s ease-out',
+                backgroundColor: 'white'
+              }}>
+                <div className="modal-header" style={{
+                  borderBottom: '1px solid #eee',
+                  padding: '1.5rem'
+                }}>
+                  <h5 className="modal-title" style={{
+                    fontSize: '1.5rem',
+                    fontWeight: '600',
+                    color: '#2c3e50'
+                  }}>Update User Type</h5>
+                  <button 
+                    type="button" 
+                    className="btn-close" 
+                    onClick={() => setShowUserTypeModal(false)}
+                    disabled={isUpdating}
+                    style={{
+                      opacity: isUpdating ? '0.5' : '1',
+                      transition: 'opacity 0.2s'
+                    }}
+                  ></button>
+                </div>
+                <div className="modal-body" style={{ padding: '1.5rem' }}>
+                  {updateSuccess && (
+                    <div className="alert alert-success" style={{
+                      animation: 'slideIn 0.3s ease-out',
+                      borderRadius: '8px',
+                      border: 'none',
+                      boxShadow: '0 2px 10px rgba(40, 167, 69, 0.1)'
+                    }}>
+                      <i className="bi bi-check-circle-fill me-2"></i>
+                      {updateSuccess}
+                    </div>
+                  )}
+                  {updateError && (
+                    <div className="alert alert-danger" style={{
+                      animation: 'slideIn 0.3s ease-out',
+                      borderRadius: '8px',
+                      border: 'none',
+                      boxShadow: '0 2px 10px rgba(220, 53, 69, 0.1)'
+                    }}>
+                      <i className="bi bi-exclamation-circle-fill me-2"></i>
+                      {updateError}
+                    </div>
+                  )}
+                  <div className="form-group">
+                    <label className="form-label" style={{
+                      fontSize: '1.1rem',
+                      fontWeight: '500',
+                      color: '#2c3e50',
+                      marginBottom: '0.8rem'
+                    }}>Select User Type</label>
+                    <select 
+                      className="form-select"
+                      value={selectedUserType}
+                      onChange={(e) => setSelectedUserType(e.target.value)}
+                      disabled={isUpdating}
+                      style={{
+                        padding: '0.8rem',
+                        borderRadius: '8px',
+                        border: '2px solid #e9ecef',
+                        fontSize: '1rem',
+                        transition: 'all 0.2s',
+                        cursor: isUpdating ? 'not-allowed' : 'pointer',
+                        backgroundColor: isUpdating ? '#f8f9fa' : 'white',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+                      }}
+                    >
+                      <option value="STUDENT">Student</option>
+                      <option value="PROFESSIONAL">Professional</option>
+                      <option value="PLACEMENT_TRAINING">Placement Training</option>
+                    </select>
+                  </div>
+                  <div className="alert alert-warning mt-3" style={{
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: '#fff3cd',
+                    color: '#856404',
+                    boxShadow: '0 2px 10px rgba(255, 193, 7, 0.1)'
+                  }}>
+                    <small>
+                      <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                      Note: Changing your user type will affect the courses available to you.
+                      You may need to re-enroll in courses that match your new user type.
+                    </small>
+                  </div>
+                </div>
+                <div className="modal-footer" style={{
+                  borderTop: '1px solid #eee',
+                  padding: '1.5rem'
+                }}>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={() => setShowUserTypeModal(false)}
+                    disabled={isUpdating}
+                    style={{
+                      padding: '0.6rem 1.2rem',
+                      borderRadius: '8px',
+                      transition: 'all 0.2s',
+                      opacity: isUpdating ? '0.7' : '1'
+                    }}
                   >
-                    <option value="STUDENT">Student</option>
-                    <option value="PROFESSIONAL">Professional</option>
-                    <option value="PLACEMENT_TRAINING">Placement Training</option>
-                  </select>
+                    Cancel
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn btn-primary" 
+                    onClick={handleUserTypeUpdate}
+                    disabled={isUpdating}
+                    style={{
+                      padding: '0.6rem 1.2rem',
+                      borderRadius: '8px',
+                      transition: 'all 0.2s',
+                      backgroundColor: '#0d6efd',
+                      border: 'none',
+                      boxShadow: '0 2px 5px rgba(13, 110, 253, 0.2)'
+                    }}
+                  >
+                    {isUpdating ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Updating...
+                      </>
+                    ) : (
+                      'Update'
+                    )}
+                  </button>
                 </div>
-                <div className="alert alert-warning mt-3">
-                  <small>
-                    Note: Changing your user type will affect the courses available to you.
-                    You may need to re-enroll in courses that match your new user type.
-                  </small>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button 
-                  type="button" 
-                  className="btn btn-secondary" 
-                  onClick={() => setShowUserTypeModal(false)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="button" 
-                  className="btn btn-primary" 
-                  onClick={handleUserTypeUpdate}
-                >
-                  Update
-                </button>
               </div>
             </div>
-          </div>
+          </>
+        )}
+        
+        <div className="dashboard-tabs">
+          <button
+            className={`tab-button ${activeTab === 'myLearning' ? 'active' : ''}`}
+            onClick={() => setActiveTab('myLearning')}
+          >
+            My Learning
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'discover' ? 'active' : ''}`}
+            onClick={() => setActiveTab('discover')}
+          >
+            Discover Courses
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'certificates' ? 'active' : ''}`}
+            onClick={() => setActiveTab('certificates')}
+          >
+            Certificates
+          </button>
         </div>
-      )}
-      
-      <div className="dashboard-tabs">
-        <button
-          className={`tab-button ${activeTab === 'myLearning' ? 'active' : ''}`}
-          onClick={() => setActiveTab('myLearning')}
-        >
-          My Learning
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'discover' ? 'active' : ''}`}
-          onClick={() => setActiveTab('discover')}
-        >
-          Discover Courses
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'certificates' ? 'active' : ''}`}
-          onClick={() => setActiveTab('certificates')}
-        >
-          Certificates
-        </button>
-      </div>
-      
-      <div className="dashboard-content">
-        {activeTab === 'myLearning' && (
-          <div className="my-learning-section">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2>My Learning</h2>
-              
-              {/* Search and filter inline */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Search courses"
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  style={{ width: '250px' }}
-                />
-                <select
-                  className="form-control"
-                  value={selectedCategory}
-                  onChange={handleCategoryChange}
-                  style={{ width: '150px' }}
-                >
-                  <option value="">All Categories</option>
-                  {categories.map((category, index) => (
-                    <option key={index} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-                <button 
-                  className="btn btn-sm btn-secondary"
-                  onClick={resetFilters}
-                >
-                  Reset
-                </button>
-              </div>
-            </div>
-            
-            {loading ? (
-              <p>Loading courses...</p>
-            ) : error ? (
-              <div className="alert alert-danger">{error}</div>
-            ) : enrolledCourses.length === 0 ? (
-              <p>You haven't enrolled in any courses yet.</p>
-            ) : filteredEnrolledCourses.length === 0 ? (
-              <p>No courses match your search criteria.</p>
-            ) : (
-              <CourseList courses={filteredEnrolledCourses} isEnrolledView={true} />
-            )}
-          </div>
-        )}
         
-        {activeTab === 'discover' && (
-          <div className="discover-section">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <div>
-                <h2>Available Courses</h2>
-                <p className="text-muted">
-                  Showing courses suitable for your user type: {userType === 'STUDENT' ? 'Student' :
-                                                           userType === 'PROFESSIONAL' ? 'Professional' :
-                                                           'Placement Training'}
-                </p>
+        <div className="dashboard-content">
+          {activeTab === 'myLearning' && (
+            <div className="my-learning-section">
+              <div className="section-header">
+                <h2>My Learning</h2>
+                <div className="search-filter-controls">
+                  <input
+                    type="text"
+                    placeholder="Search courses"
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                  />
+                  <select
+                    value={selectedCategory}
+                    onChange={handleCategoryChange}
+                  >
+                    <option value="">All Categories</option>
+                    {categories.map((category, index) => (
+                      <option key={index} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                  <button 
+                    className="btn btn-secondary"
+                    onClick={resetFilters}
+                  >
+                    <i className="bi bi-x-circle me-2"></i>
+                    Reset
+                  </button>
+                </div>
               </div>
               
-              {/* Search and filter inline */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Search courses"
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  style={{ width: '250px' }}
-                />
-                <select
-                  className="form-control"
-                  value={selectedCategory}
-                  onChange={handleCategoryChange}
-                  style={{ width: '150px' }}
-                >
-                  <option value="">All Categories</option>
-                  {categories.map((category, index) => (
-                    <option key={index} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-                <button 
-                  className="btn btn-sm btn-secondary"
-                  onClick={resetFilters}
-                >
-                  Reset
-                </button>
-              </div>
+              {loading ? (
+                <div className="loading-state">
+                  <i className="bi bi-arrow-repeat"></i>
+                  <p>Loading your courses...</p>
+                </div>
+              ) : error ? (
+                <div className="alert alert-danger">
+                  <i className="bi bi-exclamation-circle-fill me-2"></i>
+                  {error}
+                </div>
+              ) : enrolledCourses.length === 0 ? (
+                <div className="courses-empty">
+                  <i className="bi bi-book me-2"></i>
+                  <h3>No Enrolled Courses</h3>
+                  <p>Start your learning journey by enrolling in courses!</p>
+                </div>
+              ) : filteredEnrolledCourses.length === 0 ? (
+                <div className="courses-empty">
+                  <i className="bi bi-search me-2"></i>
+                  <h3>No Matching Courses</h3>
+                  <p>Try adjusting your search criteria</p>
+                </div>
+              ) : (
+                <CourseList courses={filteredEnrolledCourses} isEnrolledView={true} />
+              )}
             </div>
-            
-            {loading ? (
-              <p>Loading courses...</p>
-            ) : error ? (
-              <div className="alert alert-danger">{error}</div>
-            ) : courses.length === 0 ? (
+          )}
+          
+          {activeTab === 'discover' && (
+            <div className="discover-section">
+              <div className="section-header">
+                <div>
+                  <h2>Available Courses</h2>
+                  <p className="text-muted">
+                    Showing courses suitable for your user type: {userType === 'STUDENT' ? 'Student' :
+                                                             userType === 'PROFESSIONAL' ? 'Professional' :
+                                                             'Placement Training'}
+                  </p>
+                </div>
+                <div className="search-filter-controls">
+                  <input
+                    type="text"
+                    placeholder="Search courses"
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                  />
+                  <select
+                    value={selectedCategory}
+                    onChange={handleCategoryChange}
+                  >
+                    <option value="">All Categories</option>
+                    {categories.map((category, index) => (
+                      <option key={index} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                  <button 
+                    className="btn btn-secondary"
+                    onClick={resetFilters}
+                  >
+                    <i className="bi bi-x-circle me-2"></i>
+                    Reset
+                  </button>
+                </div>
+              </div>
+              
+              {loading ? (
+                <div className="loading-state">
+                  <i className="bi bi-arrow-repeat"></i>
+                  <p>Loading available courses...</p>
+                </div>
+              ) : error ? (
+                <div className="alert alert-danger">
+                  <i className="bi bi-exclamation-circle-fill me-2"></i>
+                  {error}
+                </div>
+              ) : courses.length === 0 ? (
+                <div className="courses-empty">
+                  <i className="bi bi-book me-2"></i>
+                  <h3>No Courses Available</h3>
+                  <p>Check back later for new courses!</p>
+                </div>
+              ) : filteredAllCourses.length === 0 ? (
+                <div className="courses-empty">
+                  <i className="bi bi-search me-2"></i>
+                  <h3>No Matching Courses</h3>
+                  <p>Try adjusting your search criteria</p>
+                </div>
+              ) : (
+                <CourseList 
+                  courses={filteredAllCourses} 
+                  showEnrollButton={true} 
+                  onEnroll={handleEnroll}
+                />
+              )}
+            </div>
+          )}
+          
+          {activeTab === 'certificates' && (
+            <div className="certificates-section">
+              <div className="section-header">
+                <h2>My Certificates</h2>
+              </div>
               <div className="courses-empty">
-                <h3>No courses available for your user type</h3>
-                <p>Check back later for new courses!</p>
+                <i className="bi bi-award me-2"></i>
+                <h3>No Certificates Yet</h3>
+                <p>Complete courses to earn certificates!</p>
               </div>
-            ) : filteredAllCourses.length === 0 ? (
-              <p>No courses match your search criteria.</p>
-            ) : (
-              <CourseList 
-                courses={filteredAllCourses} 
-                showEnrollButton={true} 
-                onEnroll={handleEnroll}
-              />
-            )}
-          </div>
-        )}
-        
-        {activeTab === 'certificates' && (
-          <div className="certificates-section">
-            <h2>My Certificates</h2>
-            <p>Your certificates will appear here once you complete courses.</p>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

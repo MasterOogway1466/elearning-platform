@@ -78,6 +78,8 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
+        System.out.println("Received signup request with roles: " + signUpRequest.getRoles());
+
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
             return ResponseEntity
                     .badRequest()
@@ -101,25 +103,33 @@ public class AuthController {
         Set<String> strRoles = signUpRequest.getRoles();
         Set<String> roles = new HashSet<>();
 
+        System.out.println("Processing roles: " + strRoles);
+
         if (strRoles == null || strRoles.isEmpty()) {
             roles.add(Role.ROLE_STUDENT.name());
+            System.out.println("No roles provided, defaulting to ROLE_STUDENT");
         } else {
             strRoles.forEach(role -> {
+                System.out.println("Processing role: " + role);
                 switch (role.toLowerCase()) {
                     case "admin":
                         roles.add(Role.ROLE_ADMIN.name());
+                        System.out.println("Added ROLE_ADMIN");
                         break;
                     case "instructor":
                         roles.add(Role.ROLE_INSTRUCTOR.name());
+                        System.out.println("Added ROLE_INSTRUCTOR");
                         break;
                     case "student":
                     default:
                         roles.add(Role.ROLE_STUDENT.name());
+                        System.out.println("Added ROLE_STUDENT");
                 }
             });
         }
 
         user.setRoles(roles);
+        System.out.println("Final roles set for user: " + roles);
 
         // Set user type
         if (signUpRequest.getUserType() != null) {
@@ -129,7 +139,8 @@ public class AuthController {
             user.setUserType(UserType.STUDENT);
         }
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        System.out.println("User saved with ID: " + savedUser.getId() + " and roles: " + savedUser.getRoles());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new MessageResponse("User registered successfully!"));
     }

@@ -35,6 +35,10 @@ public class Course {
     @Enumerated(EnumType.STRING)
     private CourseType courseType;
 
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private CourseStatus status = CourseStatus.PENDING;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "instructor_id", nullable = false)
     private User instructor;

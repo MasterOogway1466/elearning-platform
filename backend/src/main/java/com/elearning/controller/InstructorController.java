@@ -4,6 +4,7 @@ import com.elearning.dto.CourseRequest;
 import com.elearning.dto.CourseResponse;
 import com.elearning.dto.MessageResponse;
 import com.elearning.model.Course;
+import com.elearning.model.CourseStatus;
 import com.elearning.model.Enrollment;
 import com.elearning.model.User;
 import com.elearning.repository.CourseRepository;
@@ -63,6 +64,7 @@ public class InstructorController {
                             course.getImageUrl(),
                             course.getCategory(),
                             course.getCourseType(),
+                            course.getStatus(),
                             course.getInstructor().getId(),
                             course.getInstructor().getFullName(),
                             course.getCreatedAt(),
@@ -97,6 +99,7 @@ public class InstructorController {
                         course.getImageUrl(),
                         course.getCategory(),
                         course.getCourseType(),
+                        course.getStatus(),
                         course.getInstructor().getId(),
                         course.getInstructor().getFullName(),
                         course.getCreatedAt(),
@@ -137,6 +140,7 @@ public class InstructorController {
                     savedCourse.getImageUrl(),
                     savedCourse.getCategory(),
                     savedCourse.getCourseType(),
+                    savedCourse.getStatus(),
                     savedCourse.getInstructor().getId(),
                     savedCourse.getInstructor().getFullName(),
                     savedCourse.getCreatedAt(),
@@ -337,6 +341,93 @@ public class InstructorController {
                 updatedCourse.getImageUrl(),
                 updatedCourse.getCategory(),
                 updatedCourse.getCourseType(),
+                updatedCourse.getStatus(),
+                updatedCourse.getInstructor().getId(),
+                updatedCourse.getInstructor().getFullName(),
+                updatedCourse.getCreatedAt(),
+                updatedCourse.getUpdatedAt());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/rejected-courses")
+    public ResponseEntity<?> getRejectedCourses(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
+        if (userOpt.isPresent()) {
+            User instructor = userOpt.get();
+            List<Course> rejectedCourses = courseRepository.findByInstructorAndStatus(instructor,
+                    CourseStatus.REJECTED);
+
+            List<CourseResponse> courseResponses = rejectedCourses.stream()
+                    .map(course -> new CourseResponse(
+                            course.getId(),
+                            course.getTitle(),
+                            course.getDescription(),
+                            course.getImageUrl(),
+                            course.getCategory(),
+                            course.getCourseType(),
+                            course.getStatus(),
+                            course.getInstructor().getId(),
+                            course.getInstructor().getFullName(),
+                            course.getCreatedAt(),
+                            course.getUpdatedAt()))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(courseResponses);
+        } else {
+            return ResponseEntity.status(404).body("User not found");
+        }
+    }
+
+    @PostMapping("/courses/{courseId}/resubmit")
+    public ResponseEntity<?> resubmitCourse(
+            @PathVariable Long courseId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        User instructor = userOpt.get();
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        Course course = courseOpt.get();
+
+        // Check if the instructor is the owner of this course
+        if (!course.getInstructor().getId().equals(instructor.getId())) {
+            return ResponseEntity.status(403).body("You are not authorized to resubmit this course");
+        }
+
+        // Check if the course is rejected
+        if (course.getStatus() != CourseStatus.REJECTED) {
+            return ResponseEntity.status(400).body("Only rejected courses can be resubmitted");
+        }
+
+        // Update course status to pending
+        course.setStatus(CourseStatus.PENDING);
+        Course updatedCourse = courseRepository.save(course);
+
+        CourseResponse response = new CourseResponse(
+                updatedCourse.getId(),
+                updatedCourse.getTitle(),
+                updatedCourse.getDescription(),
+                updatedCourse.getImageUrl(),
+                updatedCourse.getCategory(),
+                updatedCourse.getCourseType(),
+                updatedCourse.getStatus(),
                 updatedCourse.getInstructor().getId(),
                 updatedCourse.getInstructor().getFullName(),
                 updatedCourse.getCreatedAt(),

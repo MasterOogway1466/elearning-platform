@@ -25,6 +25,15 @@ class AuthService {
   }
 
   register(username, email, password, fullName, phoneNumber, role, userType) {
+    console.log('Registration request data:', {
+      username,
+      email,
+      password,
+      fullName,
+      phoneNumber,
+      roles: [role],
+      userType
+    });
     return axios.post(API_URL + 'signup', {
       username,
       email,

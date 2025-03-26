@@ -13,6 +13,7 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import StudentDashboard from './pages/StudentDashboard';
 import InstructorDashboard from './pages/InstructorDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 
 // Auth context
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -32,47 +33,59 @@ const ProtectedRoute = ({ element, roles }) => {
   return element;
 };
 
-// App routing with AuthProvider
-const AppRoutes = () => {
-  const { isLoggedIn, isInstructor, isStudent } = useAuth();
-  
-  return (
-    <div className="app">
-      <Header />
-      <main className="container">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={isLoggedIn ? <Navigate to="/profile" /> : <Login />} />
-          <Route path="/register" element={isLoggedIn ? <Navigate to="/profile" /> : <Register />} />
-          <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
-          <Route 
-            path="/dashboard" 
-            element={
-              isInstructor ? <Navigate to="/instructor-dashboard" /> : 
-              isStudent ? <Navigate to="/student-dashboard" /> : 
-              <Navigate to="/" />
-            } 
-          />
-          <Route 
-            path="/student-dashboard" 
-            element={<ProtectedRoute element={<StudentDashboard />} roles={['ROLE_STUDENT']} />} 
-          />
-          <Route 
-            path="/instructor-dashboard" 
-            element={<ProtectedRoute element={<InstructorDashboard />} roles={['ROLE_INSTRUCTOR']} />} 
-          />
-        </Routes>
-      </main>
-      <Footer />
-    </div>
-  );
-};
-
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppRoutes />
+        <div className="App">
+          <Header />
+          <main className="main-content">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              {/* Protected Routes */}
+              <Route
+                path="/student-dashboard"
+                element={
+                  <ProtectedRoute
+                    element={<StudentDashboard />}
+                    roles={['ROLE_STUDENT']}
+                  />
+                }
+              />
+              <Route
+                path="/instructor-dashboard"
+                element={
+                  <ProtectedRoute
+                    element={<InstructorDashboard />}
+                    roles={['ROLE_INSTRUCTOR']}
+                  />
+                }
+              />
+              <Route
+                path="/admin-dashboard"
+                element={
+                  <ProtectedRoute
+                    element={<AdminDashboard />}
+                    roles={['ROLE_ADMIN']}
+                  />
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute
+                    element={<Profile />}
+                    roles={['ROLE_STUDENT', 'ROLE_INSTRUCTOR', 'ROLE_ADMIN']}
+                  />
+                }
+              />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
       </AuthProvider>
     </Router>
   );

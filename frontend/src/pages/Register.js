@@ -76,6 +76,10 @@ const Register = () => {
 
   const onChangeRole = (e) => {
     setRole(e.target.value);
+    // Set userType to null for admin and instructor roles
+    if (e.target.value === 'admin' || e.target.value === 'instructor') {
+      setUserType(null);
+    }
   };
 
   const onChangeUserType = (e) => {
@@ -146,7 +150,9 @@ const Register = () => {
       setTimeout(async () => {
         try {
           await login(username, password);
-          if (role === 'instructor') {
+          if (role === 'admin') {
+            navigate('/admin-dashboard');
+          } else if (role === 'instructor') {
             navigate('/instructor-dashboard');
           } else {
             navigate('/student-dashboard');
@@ -172,126 +178,129 @@ const Register = () => {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h2>Sign Up</h2>
+    <div className="main-content">
+      <div className="auth-container">
+        <div className="auth-card">
+          <h2>Sign Up</h2>
 
-        <form onSubmit={handleRegister}>
-          {!successful && (
-            <div>
-              <div className="form-group">
-                <label htmlFor="fullName">Full Name</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  name="fullName"
-                  value={fullName}
-                  onChange={onChangeFullName}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="username">Username</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  name="username"
-                  value={username}
-                  onChange={onChangeUsername}
-                />
-                {errors.username && <div className="validation-error">{errors.username}</div>}
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="email">Email</label>
-                <input
-                  type="email"
-                  className="form-control"
-                  name="email"
-                  value={email}
-                  onChange={onChangeEmail}
-                />
-                {errors.email && <div className="validation-error">{errors.email}</div>}
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="password">Password</label>
-                <input
-                  type="password"
-                  className="form-control"
-                  name="password"
-                  value={password}
-                  onChange={onChangePassword}
-                />
-                {errors.password && <div className="validation-error">{errors.password}</div>}
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="phoneNumber">Phone Number</label>
-                <input
-                  type="tel"
-                  className="form-control"
-                  name="phoneNumber"
-                  value={phoneNumber}
-                  onChange={onChangePhoneNumber}
-                  placeholder="e.g. +1234567890"
-                />
-                {errors.phoneNumber && <div className="validation-error">{errors.phoneNumber}</div>}
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="role">Role</label>
-                <select
-                  className="form-control"
-                  name="role"
-                  value={role}
-                  onChange={onChangeRole}
-                >
-                  <option value="student">Student</option>
-                  <option value="instructor">Instructor</option>
-                </select>
-              </div>
-
-              {role === 'student' && (
+          <form onSubmit={handleRegister}>
+            {!successful && (
+              <div>
                 <div className="form-group">
-                  <label htmlFor="userType">User Type</label>
+                  <label htmlFor="fullName">Full Name</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="fullName"
+                    value={fullName}
+                    onChange={onChangeFullName}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="username">Username</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="username"
+                    value={username}
+                    onChange={onChangeUsername}
+                  />
+                  {errors.username && <div className="validation-error">{errors.username}</div>}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="email">Email</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    name="email"
+                    value={email}
+                    onChange={onChangeEmail}
+                  />
+                  {errors.email && <div className="validation-error">{errors.email}</div>}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="password">Password</label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    name="password"
+                    value={password}
+                    onChange={onChangePassword}
+                  />
+                  {errors.password && <div className="validation-error">{errors.password}</div>}
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="phoneNumber">Phone Number</label>
+                  <input
+                    type="tel"
+                    className="form-control"
+                    name="phoneNumber"
+                    value={phoneNumber}
+                    onChange={onChangePhoneNumber}
+                    placeholder="e.g. +1234567890"
+                  />
+                  {errors.phoneNumber && <div className="validation-error">{errors.phoneNumber}</div>}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="role">Role</label>
                   <select
                     className="form-control"
-                    name="userType"
-                    value={userType}
-                    onChange={onChangeUserType}
+                    name="role"
+                    value={role}
+                    onChange={onChangeRole}
                   >
-                    <option value="STUDENT">Student</option>
-                    <option value="PROFESSIONAL">Professional</option>
-                    <option value="PLACEMENT_TRAINING">Placement Training</option>
+                    <option value="student">Student</option>
+                    <option value="instructor">Instructor</option>
+                    <option value="admin">Admin</option>
                   </select>
                 </div>
-              )}
 
+                {role === 'student' && (
+                  <div className="form-group">
+                    <label htmlFor="userType">User Type</label>
+                    <select
+                      className="form-control"
+                      name="userType"
+                      value={userType}
+                      onChange={onChangeUserType}
+                    >
+                      <option value="STUDENT">Student</option>
+                      <option value="PROFESSIONAL">Professional</option>
+                      <option value="PLACEMENT_TRAINING">Placement Training</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <button className="btn btn-primary btn-block" disabled={loading}>
+                    {loading && (
+                      <span className="spinner-border spinner-border-sm"></span>
+                    )}
+                    Sign Up
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {message && (
               <div className="form-group">
-                <button className="btn btn-primary btn-block" disabled={loading}>
-                  {loading && (
-                    <span className="spinner-border spinner-border-sm"></span>
-                  )}
-                  Sign Up
-                </button>
+                <div
+                  className={
+                    successful ? "alert alert-success" : "alert alert-danger"
+                  }
+                  role="alert"
+                >
+                  {message}
+                </div>
               </div>
-            </div>
-          )}
-
-          {message && (
-            <div className="form-group">
-              <div
-                className={
-                  successful ? "alert alert-success" : "alert alert-danger"
-                }
-                role="alert"
-              >
-                {message}
-              </div>
-            </div>
-          )}
-        </form>
+            )}
+          </form>
+        </div>
       </div>
     </div>
   );
