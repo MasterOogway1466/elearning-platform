@@ -19,6 +19,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Service;
 
 import jakarta.validation.Valid;
 import java.util.HashSet;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 @CrossOrigin(origins = "http://localhost:3000", maxAge = 3600)
 @RestController
 @RequestMapping("/api/auth")
+@Service
 public class AuthController {
     @Autowired
     AuthenticationManager authenticationManager;
