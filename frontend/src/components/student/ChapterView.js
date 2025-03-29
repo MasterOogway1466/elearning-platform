@@ -57,8 +57,16 @@ const ChapterView = () => {
   const fetchChapterNotes = async () => {
     try {
       setNotesError('');
-      const response = await noteService.getChapterNote(courseId, parseInt(activeChapterIndex, 10));
-      setNotes(response.data.content || '');
+      // Instead of requesting chapter-specific notes, we get the general course notes
+      const response = await noteService.getCourseNotes(courseId);
+      
+      if (response.data && response.data.length > 0) {
+        // Get the general course note (without a chapter)
+        const generalNote = response.data.find(note => note.chapterIndex === null) || response.data[0];
+        setNotes(generalNote.content || '');
+      } else {
+        setNotes('');
+      }
     } catch (err) {
       console.error('Failed to load notes:', err);
       setNotesError('Failed to load notes. Please try again.');
@@ -70,7 +78,8 @@ const ChapterView = () => {
       setSavingNotes(true);
       setNotesError('');
       
-      await noteService.saveNote(courseId, notes, parseInt(activeChapterIndex, 10));
+      // Save to general course notes instead of chapter-specific notes
+      await noteService.saveNote(courseId, notes, null);
       
       setNotesSaved(true);
       
@@ -187,7 +196,7 @@ const ChapterView = () => {
               onClick={toggleNotesPanel}
             >
               <i className={`bi ${showNotesPanel ? 'bi-x-lg' : 'bi-pencil-square'}`}></i>
-              {showNotesPanel ? 'Hide Notes' : 'Show Notes'}
+              {showNotesPanel ? 'Hide Notes' : 'Course Notes'}
             </button>
           </div>
           
@@ -229,8 +238,11 @@ const ChapterView = () => {
                 <div className="notes-panel-header">
                   <h3>
                     <i className="bi bi-pencil-square me-2"></i>
-                    Chapter Notes
+                    Course Notes
                   </h3>
+                  <p className="text-muted mb-0">
+                    <small><i className="bi bi-info-circle me-1"></i> These notes are shared across all chapters in this course</small>
+                  </p>
                 </div>
                 
                 <div className="notes-panel-content">
@@ -250,7 +262,7 @@ const ChapterView = () => {
                   
                   <textarea
                     className="notes-textarea"
-                    placeholder="Take notes for this chapter here..."
+                    placeholder="Take notes for this course here..."
                     value={notes}
                     onChange={handleNotesChange}
                   ></textarea>
