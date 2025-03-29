@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './AdminComponents.css';
+import CourseDetails from '../course/CourseDetails';
 
-const PendingCourses = () => {
+const PendingCourses = ({ onViewCourse }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
+  const [selectedCourseId, setSelectedCourseId] = useState(null);
 
   useEffect(() => {
     fetchPendingCourses();
@@ -47,6 +49,18 @@ const PendingCourses = () => {
     }
   };
 
+  const handleViewCourse = (courseId) => {
+    if (onViewCourse) {
+      onViewCourse(courseId);
+    } else {
+      setSelectedCourseId(courseId);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setSelectedCourseId(null);
+  };
+
   if (loading) return <div className="loading">Loading pending courses...</div>;
   if (error) return <div className="error">{error}</div>;
 
@@ -78,11 +92,17 @@ const PendingCourses = () => {
             {courses.map((course) => (
               <tr key={course.id}>
                 <td>{course.title}</td>
-                <td>{course.instructor.fullName}</td>
+                <td>{course.instructorName}</td>
                 <td>{course.category}</td>
                 <td>{course.courseType}</td>
                 <td>{new Date(course.createdAt).toLocaleDateString()}</td>
                 <td>
+                  <button
+                    className="btn-view"
+                    onClick={() => handleViewCourse(course.id)}
+                  >
+                    View Details
+                  </button>
                   <button
                     className="btn-approve"
                     onClick={() => handleCourseAction(course.id, 'approve')}
@@ -106,6 +126,13 @@ const PendingCourses = () => {
           </tbody>
         </table>
       </div>
+      
+      {selectedCourseId && !onViewCourse && (
+        <CourseDetails 
+          courseId={selectedCourseId}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 };

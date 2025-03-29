@@ -92,8 +92,47 @@
 
 .course-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 15px;
+}
+
+.course-actions .btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  min-width: 100px;
+}
+
+.course-actions .btn-danger {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+}
+
+.course-actions .btn-danger:hover {
+  background-color: #c82333;
+  box-shadow: 0 3px 8px rgba(220, 53, 69, 0.2);
+}
+
+.btn-secondary:disabled {
+  background-color: #6c757d;
+  color: white;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-outline-primary {
+  background: transparent;
+  color: #007bff;
+  border: 1px solid #007bff;
+}
+
+.btn-outline-primary:hover {
+  background: rgba(0, 123, 255, 0.1);
 }
 
 .btn {
@@ -105,6 +144,9 @@
   text-decoration: none;
   text-align: center;
   transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-primary {

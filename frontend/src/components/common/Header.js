@@ -37,17 +37,17 @@ const Header = () => {
             <>
               {isAdmin && (
                 <Link to="/admin-dashboard" className="nav-link">
-                  Admin Dashboard
+                  Dashboard
                 </Link>
               )}
               {isInstructor && (
                 <Link to="/instructor-dashboard" className="nav-link">
-                  Instructor Dashboard
+                  Dashboard
                 </Link>
               )}
               {isStudent && (
                 <Link to="/student-dashboard" className="nav-link">
-                  Student Dashboard
+                  Dashboard
                 </Link>
               )}
               <Link to="/profile" className="nav-link">

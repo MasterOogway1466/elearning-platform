@@ -2,17 +2,42 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import './CourseList.css';
+import CourseDetails from './CourseDetails';
+import { useToast } from '../../context/ToastContext';
 
-const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledView = false }) => {
+const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledView = false, enrolledCourseIds: externalEnrolledCourseIds }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [categories, setCategories] = useState([]);
+  const [selectedCourseId, setSelectedCourseId] = useState(null);
+  const [availableCourses, setAvailableCourses] = useState([]);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
+  const { addToast } = useToast();
 
   useEffect(() => {
-    fetchCourses();
-  }, []);
+    // If courses prop is provided, use it and set loading to false
+    if (courses && courses.length > 0) {
+      setAvailableCourses(courses);
+      // Extract unique categories
+      const uniqueCategories = [...new Set(courses.map(course => course.category))];
+      setCategories(uniqueCategories);
+      setLoading(false);
+    } else {
+      // Only fetch courses if none were provided via props
+      fetchCourses();
+    }
+
+    // If external enrolled course IDs are provided, use them
+    if (externalEnrolledCourseIds) {
+      setEnrolledCourseIds(externalEnrolledCourseIds);
+    } 
+    // Otherwise, if not in enrolled view and showing enroll button, fetch enrolled courses
+    else if (!isEnrolledView && showEnrollButton) {
+      fetchEnrolledCourseIds();
+    }
+  }, [courses, isEnrolledView, showEnrollButton, externalEnrolledCourseIds]);
 
   const fetchCourses = async () => {
     try {
@@ -21,7 +46,7 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
       });
       // Filter only approved courses
       const approvedCourses = response.data.filter(course => course.status === 'APPROVED');
-      setCourses(approvedCourses);
+      setAvailableCourses(approvedCourses);
       
       // Extract unique categories from approved courses
       const uniqueCategories = [...new Set(approvedCourses.map(course => course.category))];
@@ -34,8 +59,73 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
     }
   };
 
+  const fetchEnrolledCourseIds = async () => {
+    try {
+      const response = await axios.get(
+        'http://localhost:8080/api/student/enrolled-courses',
+        { headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` } }
+      );
+      // Extract course IDs from enrolled courses
+      const courseIds = response.data.map(course => course.id);
+      setEnrolledCourseIds(courseIds);
+    } catch (err) {
+      console.error('Failed to fetch enrolled courses:', err);
+    }
+  };
+
+  const handleViewCourse = (courseId) => {
+    setSelectedCourseId(courseId);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedCourseId(null);
+  };
+
+  const handleUnenroll = async (courseId) => {
+    try {
+      await axios.delete(
+        `http://localhost:8080/api/student/unenroll/${courseId}`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` } }
+      );
+      
+      // If in enrolled view, remove the course from display
+      if (isEnrolledView) {
+        setAvailableCourses(prev => prev.filter(course => course.id !== courseId));
+      } else {
+        // Otherwise, just update the enrolled course IDs
+        setEnrolledCourseIds(prev => prev.filter(id => id !== courseId));
+      }
+      
+      // Show success toast notification
+      addToast("Successfully unenrolled from the course", "success");
+    } catch (err) {
+      console.error('Failed to unenroll:', err);
+      addToast("Failed to unenroll: " + (err.response?.data?.message || "Unknown error"), "error");
+    }
+  };
+
   // Filter only approved courses
-  const filteredCourses = courses.filter(course => course.status === 'APPROVED');
+  const coursesToDisplay = courses || availableCourses;
+  const filteredCourses = coursesToDisplay.filter(course => course.status === 'APPROVED');
+
+  // Check if a course is enrolled
+  const isEnrolled = (courseId) => {
+    // First check if course has its own isEnrolled property
+    const course = filteredCourses.find(c => c.id === courseId);
+    if (course && course.isEnrolled !== undefined) {
+      return course.isEnrolled;
+    }
+    // Otherwise use the enrolledCourseIds array
+    return enrolledCourseIds.includes(courseId);
+  };
+
+  if (loading) {
+    return <div className="loading-spinner">Loading courses...</div>;
+  }
+
+  if (error) {
+    return <div className="error-message">{error}</div>;
+  }
 
   if (!filteredCourses || filteredCourses.length === 0) {
     return (
@@ -76,20 +166,51 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
               </p>
               <div className="course-actions">
                 {isEnrolledView ? (
-                  <Link to={`/student/course/${course.id}`} className="btn btn-success">
-                    Continue Learning
-                  </Link>
+                  <>
+                    <button 
+                      onClick={() => handleViewCourse(course.id)} 
+                      className="btn btn-outline-primary"
+                    >
+                      <i className="bi bi-eye me-2"></i>
+                      View Course
+                    </button>
+                    <Link to={`/student/course/${course.id}`} className="btn btn-success">
+                      <i className="bi bi-book me-2"></i>
+                      Continue
+                    </Link>
+                    <button
+                      onClick={() => handleUnenroll(course.id)}
+                      className="btn btn-danger"
+                    >
+                      <i className="bi bi-x-circle me-2"></i>
+                      Unenroll
+                    </button>
+                  </>
                 ) : (
                   <>
-                    <Link to={`/courses/${course.id}`} className="btn btn-primary">
+                    <button 
+                      onClick={() => handleViewCourse(course.id)} 
+                      className="btn btn-primary"
+                    >
+                      <i className="bi bi-eye me-2"></i>
                       View Course
-                    </Link>
-                    {showEnrollButton && (
+                    </button>
+                    {showEnrollButton && !isEnrolled(course.id) && (
                       <button
                         onClick={() => onEnroll(course.id)}
                         className="btn btn-success"
                       >
+                        <i className="bi bi-check-circle me-2"></i>
                         Enroll Now
+                      </button>
+                    )}
+                    {showEnrollButton && isEnrolled(course.id) && (
+                      <button
+                        className="btn btn-secondary"
+                        disabled
+                      >
+                        <i className="bi bi-check-circle-fill me-2"></i>
+                        Enrolled
                       </button>
                     )}
                   </>
@@ -99,7 +220,74 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
           </div>
         ))}
       </div>
+      
+      {selectedCourseId && (
+        <CourseDetails 
+          courseId={selectedCourseId}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
+  );
+};
+
+// Create a wrapped version of CourseList that handles the onEnroll function
+// and shows Toast notifications
+export const CourseListWithEnrollment = ({ courses, showEnrollButton = true }) => {
+  const { addToast } = useToast();
+  const [localEnrolledCourseIds, setLocalEnrolledCourseIds] = useState([]);
+  
+  // Fetch enrolled course IDs on component mount
+  useEffect(() => {
+    const fetchEnrolledCourseIds = async () => {
+      try {
+        const response = await axios.get(
+          'http://localhost:8080/api/student/enrolled-courses',
+          { headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` } }
+        );
+        // Extract course IDs from enrolled courses
+        const courseIds = response.data.map(course => course.id);
+        setLocalEnrolledCourseIds(courseIds);
+      } catch (err) {
+        console.error('Failed to fetch enrolled courses:', err);
+      }
+    };
+    
+    fetchEnrolledCourseIds();
+  }, []);
+  
+  const handleEnroll = async (courseId) => {
+    try {
+      await axios.post(
+        'http://localhost:8080/api/student/enroll',
+        { courseId },
+        { headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` } }
+      );
+      
+      // Update local state instead of reloading the page
+      setLocalEnrolledCourseIds(prev => [...prev, courseId]);
+      
+      // Show success toast notification
+      addToast("Successfully enrolled in the course", "success");
+    } catch (err) {
+      console.error('Failed to enroll:', err);
+      addToast("Failed to enroll: " + (err.response?.data?.message || "Unknown error"), "error");
+    }
+  };
+  
+  // Create a modified course list with updated enrollment status
+  const modifiedCourses = courses.map(course => ({
+    ...course,
+    isEnrolled: localEnrolledCourseIds.includes(course.id)
+  }));
+  
+  return (
+    <CourseList 
+      courses={modifiedCourses} 
+      onEnroll={handleEnroll} 
+      showEnrollButton={showEnrollButton} 
+      enrolledCourseIds={localEnrolledCourseIds}
+    />
   );
 };
 

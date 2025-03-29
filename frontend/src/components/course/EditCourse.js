@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import authHeader from '../../services/auth-header';
+import '../../pages/Dashboard.css';
 
 const EditCourse = ({ course, onSuccess, onCancel }) => {
   const [courseData, setCourseData] = useState({
     title: '',
     description: '',
     imageUrl: '',
+    pdfUrl: '',
+    chapters: [''],
     category: '',
     courseType: 'STUDENT' // Default course type
   });
@@ -22,6 +25,8 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
         title: course.title || '',
         description: course.description || '',
         imageUrl: course.imageUrl || '',
+        pdfUrl: course.pdfUrl || '',
+        chapters: course.chapters && course.chapters.length > 0 ? [...course.chapters] : [''],
         category: course.category || '',
         courseType: course.courseType || 'STUDENT'
       });
@@ -46,21 +51,89 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
     });
   };
 
+  const handleChapterChange = (index, value) => {
+    const updatedChapters = [...courseData.chapters];
+    updatedChapters[index] = value;
+    setCourseData({
+      ...courseData,
+      chapters: updatedChapters
+    });
+  };
+
+  const addChapter = () => {
+    setCourseData({
+      ...courseData,
+      chapters: [...courseData.chapters, '']
+    });
+  };
+
+  const removeChapter = (index) => {
+    const updatedChapters = [...courseData.chapters];
+    updatedChapters.splice(index, 1);
+    setCourseData({
+      ...courseData,
+      chapters: updatedChapters.length ? updatedChapters : ['']  // Always keep at least one chapter field
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
+    // Filter out empty chapters
+    const filteredChapters = courseData.chapters.filter(chapter => chapter.trim() !== '');
+    
+    // Ensure there's at least one chapter
+    if (filteredChapters.length === 0) {
+      filteredChapters.push("Chapter 1"); // Add a default chapter if all are empty
+    }
+    
+    // Validate required fields before sending
+    if (!courseData.title || courseData.title.trim().length < 3) {
+      setError('Title is required and must be at least 3 characters');
+      setLoading(false);
+      return;
+    }
+    
+    if (!courseData.description || courseData.description.trim().length < 10) {
+      setError('Description is required and must be at least 10 characters');
+      setLoading(false);
+      return;
+    }
+    
+    if (!courseData.category || courseData.category.trim() === '') {
+      setError('Category is required');
+      setLoading(false);
+      return;
+    }
+    
+    if (!courseData.courseType) {
+      setError('Course type is required');
+      setLoading(false);
+      return;
+    }
+    
+    const dataToSend = {
+      ...courseData,
+      chapters: filteredChapters
+    };
+    
     // Debug logging
     console.log('Course being edited:', course);
     console.log('Course ID:', course.id);
-    console.log('Course data being sent:', courseData);
+    console.log('Course data being sent:', dataToSend);
+    console.log('Title:', dataToSend.title, 'Length:', dataToSend.title?.length);
+    console.log('Description:', dataToSend.description, 'Length:', dataToSend.description?.length);
+    console.log('Category:', dataToSend.category);
+    console.log('Course Type:', dataToSend.courseType);
+    console.log('Chapters:', dataToSend.chapters);
     
     try {
-      // Update course data
-      const response = await axios.put(
-        `http://localhost:8080/api/instructor/courses/${course.id}`,
-        courseData,
+      // Use the simpler update endpoint to avoid validation issues
+      const response = await axios.post(
+        `http://localhost:8080/api/instructor/courses/${course.id}/simple-update`,
+        dataToSend,
         { headers: authHeader() }
       );
       
@@ -82,15 +155,34 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
       
     } catch (err) {
       console.error('Error updating course:', err);
-      console.error('Error response:', err.response);
-      setError(err.response?.data?.message || 'Failed to update course');
+      console.error('Error response:', err.response?.data);
+      
+      // Extract detailed error message
+      let errorMessage = 'Failed to update course';
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        } else if (err.response.data.error) {
+          // If we have detailed validation errors
+          if (err.response.data.details) {
+            const details = err.response.data.details;
+            errorMessage = 'Validation errors: ' + 
+              Object.keys(details).map(key => `${key}: ${details[key]}`).join(', ');
+          } else {
+            errorMessage = err.response.data.error;
+          }
+        }
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="edit-course-container">
+    <div className="create-course-container">
       <h2>Edit Course</h2>
       
       {success && (
@@ -101,6 +193,7 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
       
       {error && (
         <div className="alert alert-danger">
+          <i className="bi bi-exclamation-circle-fill me-2"></i>
           {error}
         </div>
       )}
@@ -195,20 +288,76 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
           )}
         </div>
         
+        <div className="form-group">
+          <label htmlFor="pdfUrl">Course PDF URL (Optional)</label>
+          <input
+            type="text"
+            className="form-control"
+            id="pdfUrl"
+            name="pdfUrl"
+            value={courseData.pdfUrl}
+            onChange={handleChange}
+            placeholder="Link to PDF file"
+          />
+        </div>
+        
+        <div className="form-group">
+          <label>Chapter Names</label>
+          {courseData.chapters.map((chapter, index) => (
+            <div key={index} className="chapter-input-group">
+              <input
+                type="text"
+                className="form-control"
+                placeholder={`Chapter ${index + 1}`}
+                value={chapter}
+                onChange={(e) => handleChapterChange(index, e.target.value)}
+              />
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => removeChapter(index)}
+                disabled={courseData.chapters.length === 1}
+              >
+                <i className="bi bi-trash me-1"></i>
+                Delete
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            className="btn-add-chapter"
+            onClick={addChapter}
+          >
+            <i className="bi bi-plus-circle me-2"></i>
+            Add Another Chapter
+          </button>
+        </div>
+        
         <div className="form-group d-flex justify-content-between mt-4">
           <button 
             type="button" 
             className="btn btn-secondary"
             onClick={onCancel}
           >
+            <i className="bi bi-x-circle me-2"></i>
             Cancel
           </button>
           <button 
             type="submit" 
-            className="btn btn-primary"
+            className="submit-button"
             disabled={loading}
           >
-            {loading ? 'Updating...' : 'Update Course'}
+            {loading ? (
+              <>
+                <i className="bi bi-hourglass-split me-2"></i>
+                Updating Course...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-check-circle me-2"></i>
+                Update Course
+              </>
+            )}
           </button>
         </div>
       </form>

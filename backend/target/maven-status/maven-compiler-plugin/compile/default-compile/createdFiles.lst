@@ -29,6 +29,5 @@ com\elearning\model\User.class
 com\elearning\dto\CourseResponse.class
 com\elearning\dto\JwtResponse.class
 com\elearning\repository\CourseRepository.class
-com\elearning\controller\InstructorController.class
 com\elearning\ELearningApplication$1.class
 com\elearning\security\JwtUtils.class

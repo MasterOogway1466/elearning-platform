@@ -3,13 +3,17 @@ package com.elearning.controller;
 import com.elearning.dto.CourseResponse;
 import com.elearning.dto.EnrollmentRequest;
 import com.elearning.dto.MessageResponse;
+import com.elearning.dto.NoteRequest;
+import com.elearning.dto.NoteResponse;
 import com.elearning.model.Course;
 import com.elearning.model.CourseType;
 import com.elearning.model.Enrollment;
+import com.elearning.model.Note;
 import com.elearning.model.User;
 import com.elearning.model.UserType;
 import com.elearning.repository.CourseRepository;
 import com.elearning.repository.EnrollmentRepository;
+import com.elearning.repository.NoteRepository;
 import com.elearning.repository.UserRepository;
 import com.elearning.security.services.UserDetailsImpl;
 import com.elearning.service.UserService;
@@ -20,6 +24,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +45,9 @@ public class StudentController {
 
     @Autowired
     private EnrollmentRepository enrollmentRepository;
+
+    @Autowired
+    private NoteRepository noteRepository;
 
     @Autowired
     private UserService userService;
@@ -74,6 +82,8 @@ public class StudentController {
                         course.getTitle(),
                         course.getDescription(),
                         course.getImageUrl(),
+                        course.getPdfUrl(),
+                        course.getChapters(),
                         course.getCategory(),
                         course.getCourseType(),
                         course.getStatus(),
@@ -106,6 +116,8 @@ public class StudentController {
                                 course.getTitle(),
                                 course.getDescription(),
                                 course.getImageUrl(),
+                                course.getPdfUrl(),
+                                course.getChapters(),
                                 course.getCategory(),
                                 course.getCourseType(),
                                 course.getStatus(),
@@ -167,6 +179,44 @@ public class StudentController {
         enrollmentRepository.save(enrollment);
 
         return ResponseEntity.ok(new MessageResponse("Successfully enrolled in course: " + course.getTitle()));
+    }
+
+    @DeleteMapping("/unenroll/{courseId}")
+    public ResponseEntity<?> unenrollFromCourse(
+            @PathVariable Long courseId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        User student = userOpt.get();
+
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        Course course = courseOpt.get();
+
+        // Find the enrollment
+        Optional<Enrollment> enrollmentOpt = enrollmentRepository.findByStudentAndCourse(student, course);
+
+        if (!enrollmentOpt.isPresent()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not enrolled in this course"));
+        }
+
+        // Delete the enrollment
+        enrollmentRepository.delete(enrollmentOpt.get());
+
+        return ResponseEntity.ok(new MessageResponse("Successfully unenrolled from course: " + course.getTitle()));
     }
 
     @GetMapping("/assignments")
@@ -285,6 +335,265 @@ public class StudentController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error updating user type: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/notes/{courseId}")
+    public ResponseEntity<?> getCourseNotes(
+            @PathVariable Long courseId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        User student = userOpt.get();
+
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        Course course = courseOpt.get();
+
+        // Check if the student is enrolled in this course
+        if (!enrollmentRepository.existsByStudentAndCourse(student, course)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not enrolled in this course"));
+        }
+
+        // Get all notes for this student and course
+        List<Note> notes = noteRepository.findByStudentAndCourse(student, course);
+
+        // Map to response DTOs
+        List<NoteResponse> noteResponses = notes.stream()
+                .map(note -> new NoteResponse(
+                        note.getId(),
+                        course.getId(),
+                        course.getTitle(),
+                        note.getContent(),
+                        note.getChapterIndex(),
+                        note.getUpdatedAt()))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(noteResponses);
+    }
+
+    @GetMapping("/notes/{courseId}/chapter/{chapterIndex}")
+    public ResponseEntity<?> getChapterNote(
+            @PathVariable Long courseId,
+            @PathVariable Integer chapterIndex,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        User student = userOpt.get();
+
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        Course course = courseOpt.get();
+
+        // Check if the student is enrolled in this course
+        if (!enrollmentRepository.existsByStudentAndCourse(student, course)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not enrolled in this course"));
+        }
+
+        // Get the note for this chapter if it exists
+        Optional<Note> noteOpt = noteRepository.findByStudentAndCourseAndChapterIndex(student, course, chapterIndex);
+
+        if (noteOpt.isPresent()) {
+            Note note = noteOpt.get();
+            NoteResponse response = new NoteResponse(
+                    note.getId(),
+                    course.getId(),
+                    course.getTitle(),
+                    note.getContent(),
+                    note.getChapterIndex(),
+                    note.getUpdatedAt());
+            return ResponseEntity.ok(response);
+        } else {
+            // Return empty note
+            NoteResponse emptyResponse = new NoteResponse(
+                    null,
+                    course.getId(),
+                    course.getTitle(),
+                    "",
+                    chapterIndex,
+                    null);
+            return ResponseEntity.ok(emptyResponse);
+        }
+    }
+
+    @PostMapping("/notes/{courseId}")
+    public ResponseEntity<?> saveNote(
+            @PathVariable Long courseId,
+            @RequestBody NoteRequest noteRequest,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        User student = userOpt.get();
+
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        Course course = courseOpt.get();
+
+        // Check if the student is enrolled in this course
+        if (!enrollmentRepository.existsByStudentAndCourse(student, course)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not enrolled in this course"));
+        }
+
+        // Check if a note for this chapter already exists
+        Optional<Note> existingNoteOpt = noteRepository.findByStudentAndCourseAndChapterIndex(
+                student, course, noteRequest.getChapterIndex());
+
+        Note note;
+
+        if (existingNoteOpt.isPresent()) {
+            // Update existing note
+            note = existingNoteOpt.get();
+            note.setContent(noteRequest.getContent());
+            // updatedAt will be set by @PreUpdate
+        } else {
+            // Create new note
+            note = new Note();
+            note.setStudent(student);
+            note.setCourse(course);
+            note.setContent(noteRequest.getContent());
+            note.setChapterIndex(noteRequest.getChapterIndex());
+        }
+
+        Note savedNote = noteRepository.save(note);
+
+        NoteResponse response = new NoteResponse(
+                savedNote.getId(),
+                course.getId(),
+                course.getTitle(),
+                savedNote.getContent(),
+                savedNote.getChapterIndex(),
+                savedNote.getUpdatedAt());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/notes/{noteId}")
+    public ResponseEntity<?> deleteNote(
+            @PathVariable Long noteId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        User student = userOpt.get();
+
+        Optional<Note> noteOpt = noteRepository.findById(noteId);
+
+        if (!noteOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Note not found");
+        }
+
+        Note note = noteOpt.get();
+
+        // Check if the note belongs to the current student
+        if (!note.getStudent().getId().equals(student.getId())) {
+            return ResponseEntity.status(403).body("You are not authorized to delete this note");
+        }
+
+        noteRepository.delete(note);
+
+        return ResponseEntity.ok(new MessageResponse("Note deleted successfully"));
+    }
+
+    @GetMapping("/notes/{courseId}/general")
+    public ResponseEntity<?> getGeneralCourseNote(
+            @PathVariable Long courseId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        User student = userOpt.get();
+
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        Course course = courseOpt.get();
+
+        // Check if the student is enrolled in this course
+        if (!enrollmentRepository.existsByStudentAndCourse(student, course)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not enrolled in this course"));
+        }
+
+        // Get the general note (with null chapterIndex) if it exists
+        Optional<Note> noteOpt = noteRepository.findByStudentAndCourseAndChapterIndex(student, course, null);
+
+        if (noteOpt.isPresent()) {
+            Note note = noteOpt.get();
+            NoteResponse response = new NoteResponse(
+                    note.getId(),
+                    course.getId(),
+                    course.getTitle(),
+                    note.getContent(),
+                    note.getChapterIndex(),
+                    note.getUpdatedAt());
+            return ResponseEntity.ok(response);
+        } else {
+            // Return empty note
+            NoteResponse emptyResponse = new NoteResponse(
+                    null,
+                    course.getId(),
+                    course.getTitle(),
+                    "",
+                    null,
+                    null);
+            return ResponseEntity.ok(emptyResponse);
         }
     }
 }

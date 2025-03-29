@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -27,6 +29,13 @@ public class Course {
     private String description;
 
     private String imageUrl;
+
+    private String pdfUrl;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "course_chapters", joinColumns = @JoinColumn(name = "course_id"))
+    @Column(name = "chapter_name")
+    private List<String> chapters = new ArrayList<>();
 
     @Column(nullable = false)
     private String category;

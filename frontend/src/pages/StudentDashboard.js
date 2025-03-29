@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import authHeader from '../services/auth-header';
-import CourseList from '../components/course/CourseList';
+import CourseList, { CourseListWithEnrollment } from '../components/course/CourseList';
 import './Dashboard.css';
 import { Link } from 'react-router-dom';
+import CourseNotes from '../components/student/CourseNotes';
 
 const StudentDashboard = () => {
   const [courses, setCourses] = useState([]);
@@ -65,22 +66,6 @@ const StudentDashboard = () => {
     } catch (err) {
       setError('Failed to load enrolled courses. Please try again later.');
       console.error(err);
-    }
-  };
-
-  const handleEnroll = async (courseId) => {
-    try {
-      await axios.post(
-        'http://localhost:8080/api/student/enroll',
-        { courseId },
-        { headers: authHeader() }
-      );
-      // Refresh enrolled courses after successful enrollment
-      await fetchEnrolledCourses();
-      // Show a success message
-      setError('');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to enroll in course');
     }
   };
 
@@ -362,18 +347,28 @@ const StudentDashboard = () => {
             className={`tab-button ${activeTab === 'myLearning' ? 'active' : ''}`}
             onClick={() => setActiveTab('myLearning')}
           >
+            <i className="bi bi-book me-1"></i>
             My Learning
           </button>
           <button
             className={`tab-button ${activeTab === 'discover' ? 'active' : ''}`}
             onClick={() => setActiveTab('discover')}
           >
+            <i className="bi bi-compass me-1"></i>
             Discover Courses
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'notes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('notes')}
+          >
+            <i className="bi bi-journal-text me-1"></i>
+            Notes
           </button>
           <button
             className={`tab-button ${activeTab === 'certificates' ? 'active' : ''}`}
             onClick={() => setActiveTab('certificates')}
           >
+            <i className="bi bi-award me-1"></i>
             Certificates
           </button>
         </div>
@@ -501,11 +496,39 @@ const StudentDashboard = () => {
                   <p>Try adjusting your search criteria</p>
                 </div>
               ) : (
-                <CourseList 
-                  courses={filteredAllCourses} 
-                  showEnrollButton={true} 
-                  onEnroll={handleEnroll}
-                />
+                <CourseListWithEnrollment courses={filteredAllCourses} />
+              )}
+            </div>
+          )}
+          
+          {activeTab === 'notes' && (
+            <div className="notes-section">
+              <div className="notes-overview">
+                <h2>My Course Notes</h2>
+                <p>Access your notes for each course. Click on a course to view or edit notes.</p>
+              </div>
+              
+              {loading ? (
+                <div className="loading-message">Loading your courses...</div>
+              ) : error ? (
+                <div className="alert alert-danger">{error}</div>
+              ) : enrolledCourses.length === 0 ? (
+                <div className="no-courses-message">
+                  <i className="bi bi-journal-x"></i>
+                  <p>You don't have any courses with notes yet. Enroll in courses to start taking notes!</p>
+                  <button 
+                    className="btn btn-primary mt-3" 
+                    onClick={() => setActiveTab('discover')}
+                  >
+                    Browse Courses
+                  </button>
+                </div>
+              ) : (
+                <div className="notes-list">
+                  {enrolledCourses.map(course => (
+                    <CourseNotes key={course.id} course={course} />
+                  ))}
+                </div>
               )}
             </div>
           )}

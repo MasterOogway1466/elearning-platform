@@ -5,6 +5,7 @@ import com.elearning.dto.CourseResponse;
 import com.elearning.dto.MessageResponse;
 import com.elearning.model.Course;
 import com.elearning.model.CourseStatus;
+import com.elearning.model.CourseType;
 import com.elearning.model.Enrollment;
 import com.elearning.model.User;
 import com.elearning.repository.CourseRepository;
@@ -16,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +25,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
 
 @CrossOrigin(origins = "http://localhost:3000", maxAge = 3600)
 @RestController
@@ -62,6 +65,8 @@ public class InstructorController {
                             course.getTitle(),
                             course.getDescription(),
                             course.getImageUrl(),
+                            course.getPdfUrl(),
+                            course.getChapters(),
                             course.getCategory(),
                             course.getCourseType(),
                             course.getStatus(),
@@ -97,6 +102,8 @@ public class InstructorController {
                         course.getTitle(),
                         course.getDescription(),
                         course.getImageUrl(),
+                        course.getPdfUrl(),
+                        course.getChapters(),
                         course.getCategory(),
                         course.getCourseType(),
                         course.getStatus(),
@@ -127,6 +134,8 @@ public class InstructorController {
             newCourse.setTitle(courseRequest.getTitle());
             newCourse.setDescription(courseRequest.getDescription());
             newCourse.setImageUrl(courseRequest.getImageUrl());
+            newCourse.setPdfUrl(courseRequest.getPdfUrl());
+            newCourse.setChapters(courseRequest.getChapters());
             newCourse.setCategory(courseRequest.getCategory());
             newCourse.setCourseType(courseRequest.getCourseType());
             newCourse.setInstructor(user);
@@ -138,6 +147,8 @@ public class InstructorController {
                     savedCourse.getTitle(),
                     savedCourse.getDescription(),
                     savedCourse.getImageUrl(),
+                    savedCourse.getPdfUrl(),
+                    savedCourse.getChapters(),
                     savedCourse.getCategory(),
                     savedCourse.getCourseType(),
                     savedCourse.getStatus(),
@@ -290,64 +301,114 @@ public class InstructorController {
     public ResponseEntity<?> updateCourse(
             @PathVariable Long courseId,
             @AuthenticationPrincipal UserDetails userDetails,
-            @Valid @RequestBody CourseRequest courseRequest) {
+            @RequestBody CourseRequest courseRequest) {
 
-        if (userDetails == null) {
-            return ResponseEntity.status(401).body("Unauthorized");
+        // Debug logging to see the entire courseRequest
+        System.out.println("Received course update request: " + courseRequest);
+
+        // Check for null values and provide defaults
+        courseRequest.ensureFieldsNotNull();
+
+        // Print detailed properties
+        System.out.println("Title: '" + courseRequest.getTitle() + "', Length: " + courseRequest.getTitle().length());
+        System.out.println("Description: '" + courseRequest.getDescription() + "', Length: "
+                + courseRequest.getDescription().length());
+        System.out.println("Category: '" + courseRequest.getCategory() + "'");
+        System.out.println("CourseType: " + courseRequest.getCourseType());
+        System.out.println("Chapters: " + courseRequest.getChapters());
+
+        try {
+            if (userDetails == null) {
+                return ResponseEntity.status(401).body("Unauthorized");
+            }
+
+            Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+            Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+            if (!userOpt.isPresent()) {
+                return ResponseEntity.status(404).body("User not found");
+            }
+
+            if (!courseOpt.isPresent()) {
+                return ResponseEntity.status(404).body("Course not found");
+            }
+
+            User instructor = userOpt.get();
+            Course course = courseOpt.get();
+
+            // Debug logging
+            System.out.println("Current course type: " + course.getCourseType());
+            System.out.println("New course type from request: " + courseRequest.getCourseType());
+
+            // Verify that the instructor owns this course
+            if (!course.getInstructor().getId().equals(instructor.getId())) {
+                return ResponseEntity.status(403).body("You are not authorized to update this course");
+            }
+
+            // Update course details with null checks
+            if (courseRequest.getTitle() != null) {
+                course.setTitle(courseRequest.getTitle());
+            }
+
+            if (courseRequest.getDescription() != null) {
+                course.setDescription(courseRequest.getDescription());
+            }
+
+            // These can be null, so direct assignment is fine
+            course.setImageUrl(courseRequest.getImageUrl());
+            course.setPdfUrl(courseRequest.getPdfUrl());
+
+            // Ensure chapters is not null and has at least one chapter
+            if (courseRequest.getChapters() == null || courseRequest.getChapters().isEmpty()) {
+                // Keep existing chapters if new list is empty
+                if (course.getChapters() == null || course.getChapters().isEmpty()) {
+                    // If both old and new are empty, add a default chapter
+                    List<String> defaultChapters = new ArrayList<>();
+                    defaultChapters.add("Chapter 1");
+                    course.setChapters(defaultChapters);
+                }
+            } else {
+                course.setChapters(courseRequest.getChapters());
+            }
+
+            if (courseRequest.getCategory() != null) {
+                course.setCategory(courseRequest.getCategory());
+            }
+
+            if (courseRequest.getCourseType() != null) {
+                course.setCourseType(courseRequest.getCourseType());
+            }
+
+            // Debug logging
+            System.out.println("Course type after setting: " + course.getCourseType());
+            System.out.println("Chapters after setting: " + course.getChapters());
+
+            Course updatedCourse = courseRepository.save(course);
+
+            // Debug logging
+            System.out.println("Course type after saving: " + updatedCourse.getCourseType());
+            System.out.println("Chapters after saving: " + updatedCourse.getChapters());
+
+            CourseResponse response = new CourseResponse(
+                    updatedCourse.getId(),
+                    updatedCourse.getTitle(),
+                    updatedCourse.getDescription(),
+                    updatedCourse.getImageUrl(),
+                    updatedCourse.getPdfUrl(),
+                    updatedCourse.getChapters(),
+                    updatedCourse.getCategory(),
+                    updatedCourse.getCourseType(),
+                    updatedCourse.getStatus(),
+                    updatedCourse.getInstructor().getId(),
+                    updatedCourse.getInstructor().getFullName(),
+                    updatedCourse.getCreatedAt(),
+                    updatedCourse.getUpdatedAt());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error updating course: " + e.getMessage());
         }
-
-        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
-        Optional<Course> courseOpt = courseRepository.findById(courseId);
-
-        if (!userOpt.isPresent()) {
-            return ResponseEntity.status(404).body("User not found");
-        }
-
-        if (!courseOpt.isPresent()) {
-            return ResponseEntity.status(404).body("Course not found");
-        }
-
-        User instructor = userOpt.get();
-        Course course = courseOpt.get();
-
-        // Debug logging
-        System.out.println("Current course type: " + course.getCourseType());
-        System.out.println("New course type from request: " + courseRequest.getCourseType());
-
-        // Verify that the instructor owns this course
-        if (!course.getInstructor().getId().equals(instructor.getId())) {
-            return ResponseEntity.status(403).body("You are not authorized to update this course");
-        }
-
-        // Update course details
-        course.setTitle(courseRequest.getTitle());
-        course.setDescription(courseRequest.getDescription());
-        course.setImageUrl(courseRequest.getImageUrl());
-        course.setCategory(courseRequest.getCategory());
-        course.setCourseType(courseRequest.getCourseType());
-
-        // Debug logging
-        System.out.println("Course type after setting: " + course.getCourseType());
-
-        Course updatedCourse = courseRepository.save(course);
-
-        // Debug logging
-        System.out.println("Course type after saving: " + updatedCourse.getCourseType());
-
-        CourseResponse response = new CourseResponse(
-                updatedCourse.getId(),
-                updatedCourse.getTitle(),
-                updatedCourse.getDescription(),
-                updatedCourse.getImageUrl(),
-                updatedCourse.getCategory(),
-                updatedCourse.getCourseType(),
-                updatedCourse.getStatus(),
-                updatedCourse.getInstructor().getId(),
-                updatedCourse.getInstructor().getFullName(),
-                updatedCourse.getCreatedAt(),
-                updatedCourse.getUpdatedAt());
-
-        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/rejected-courses")
@@ -369,6 +430,44 @@ public class InstructorController {
                             course.getTitle(),
                             course.getDescription(),
                             course.getImageUrl(),
+                            course.getPdfUrl(),
+                            course.getChapters(),
+                            course.getCategory(),
+                            course.getCourseType(),
+                            course.getStatus(),
+                            course.getInstructor().getId(),
+                            course.getInstructor().getFullName(),
+                            course.getCreatedAt(),
+                            course.getUpdatedAt()))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(courseResponses);
+        } else {
+            return ResponseEntity.status(404).body("User not found");
+        }
+    }
+
+    @GetMapping("/pending-courses")
+    public ResponseEntity<?> getPendingCourses(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
+        if (userOpt.isPresent()) {
+            User instructor = userOpt.get();
+            List<Course> pendingCourses = courseRepository.findByInstructorAndStatus(instructor,
+                    CourseStatus.PENDING);
+
+            List<CourseResponse> courseResponses = pendingCourses.stream()
+                    .map(course -> new CourseResponse(
+                            course.getId(),
+                            course.getTitle(),
+                            course.getDescription(),
+                            course.getImageUrl(),
+                            course.getPdfUrl(),
+                            course.getChapters(),
                             course.getCategory(),
                             course.getCourseType(),
                             course.getStatus(),
@@ -425,6 +524,8 @@ public class InstructorController {
                 updatedCourse.getTitle(),
                 updatedCourse.getDescription(),
                 updatedCourse.getImageUrl(),
+                updatedCourse.getPdfUrl(),
+                updatedCourse.getChapters(),
                 updatedCourse.getCategory(),
                 updatedCourse.getCourseType(),
                 updatedCourse.getStatus(),
@@ -434,5 +535,149 @@ public class InstructorController {
                 updatedCourse.getUpdatedAt());
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/courses/{courseId}/simple-update")
+    public ResponseEntity<?> simpleUpdateCourse(
+            @PathVariable Long courseId,
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody Map<String, Object> courseData) {
+
+        try {
+            if (userDetails == null) {
+                return ResponseEntity.status(401).body("Unauthorized");
+            }
+
+            Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+            Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+            if (!userOpt.isPresent()) {
+                return ResponseEntity.status(404).body("User not found");
+            }
+
+            if (!courseOpt.isPresent()) {
+                return ResponseEntity.status(404).body("Course not found");
+            }
+
+            User instructor = userOpt.get();
+            Course course = courseOpt.get();
+
+            // Verify that the instructor owns this course
+            if (!course.getInstructor().getId().equals(instructor.getId())) {
+                return ResponseEntity.status(403).body("You are not authorized to update this course");
+            }
+
+            // Update course details
+            if (courseData.containsKey("title") && courseData.get("title") != null) {
+                course.setTitle((String) courseData.get("title"));
+            }
+
+            if (courseData.containsKey("description") && courseData.get("description") != null) {
+                course.setDescription((String) courseData.get("description"));
+            }
+
+            if (courseData.containsKey("imageUrl")) {
+                course.setImageUrl((String) courseData.get("imageUrl"));
+            }
+
+            if (courseData.containsKey("pdfUrl")) {
+                course.setPdfUrl((String) courseData.get("pdfUrl"));
+            }
+
+            if (courseData.containsKey("chapters")) {
+                @SuppressWarnings("unchecked")
+                List<String> chapters = (List<String>) courseData.get("chapters");
+                if (chapters != null && !chapters.isEmpty()) {
+                    course.setChapters(chapters);
+                } else {
+                    // If chapters list is empty, add default chapter
+                    List<String> defaultChapters = new ArrayList<>();
+                    defaultChapters.add("Chapter 1");
+                    course.setChapters(defaultChapters);
+                }
+            }
+
+            if (courseData.containsKey("category") && courseData.get("category") != null) {
+                course.setCategory((String) courseData.get("category"));
+            }
+
+            if (courseData.containsKey("courseType") && courseData.get("courseType") != null) {
+                String courseTypeStr = (String) courseData.get("courseType");
+                try {
+                    course.setCourseType(CourseType.valueOf(courseTypeStr));
+                } catch (IllegalArgumentException e) {
+                    // Default to STUDENT if invalid course type
+                    course.setCourseType(CourseType.STUDENT);
+                    System.out.println("Warning: Invalid course type '" + courseTypeStr + "', using default STUDENT");
+                }
+            }
+
+            Course updatedCourse = courseRepository.save(course);
+
+            CourseResponse response = new CourseResponse(
+                    updatedCourse.getId(),
+                    updatedCourse.getTitle(),
+                    updatedCourse.getDescription(),
+                    updatedCourse.getImageUrl(),
+                    updatedCourse.getPdfUrl(),
+                    updatedCourse.getChapters(),
+                    updatedCourse.getCategory(),
+                    updatedCourse.getCourseType(),
+                    updatedCourse.getStatus(),
+                    updatedCourse.getInstructor().getId(),
+                    updatedCourse.getInstructor().getFullName(),
+                    updatedCourse.getCreatedAt(),
+                    updatedCourse.getUpdatedAt());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error updating course: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/courses/{courseId}")
+    @Transactional
+    public ResponseEntity<?> deleteCourse(
+            @PathVariable Long courseId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        try {
+            if (userDetails == null) {
+                return ResponseEntity.status(401).body("Unauthorized");
+            }
+
+            Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+            Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+            if (!userOpt.isPresent()) {
+                return ResponseEntity.status(404).body("User not found");
+            }
+
+            if (!courseOpt.isPresent()) {
+                return ResponseEntity.status(404).body("Course not found");
+            }
+
+            User instructor = userOpt.get();
+            Course course = courseOpt.get();
+
+            // Verify that the instructor owns this course
+            if (!course.getInstructor().getId().equals(instructor.getId())) {
+                return ResponseEntity.status(403).body("You are not authorized to delete this course");
+            }
+
+            // Delete enrollments for this course first to prevent foreign key constraint
+            // violations
+            enrollmentRepository.deleteByCourse(course);
+
+            // Delete the course
+            courseRepository.delete(course);
+
+            return ResponseEntity.ok(new MessageResponse("Course deleted successfully"));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error deleting course: " + e.getMessage());
+        }
     }
 }

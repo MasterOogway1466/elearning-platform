@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -16,6 +17,8 @@ public class CourseResponse {
     private String title;
     private String description;
     private String imageUrl;
+    private String pdfUrl;
+    private List<String> chapters;
     private String category;
     private CourseType courseType;
     private CourseStatus status;

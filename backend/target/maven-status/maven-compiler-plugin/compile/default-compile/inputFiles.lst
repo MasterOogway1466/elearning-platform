@@ -2,8 +2,11 @@ D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Des
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\CourseRequest.java
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\security\JwtUtils.java
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\CourseResponse.java
+D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\NoteResponse.java
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\UserType.java
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\User.java
+D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\repository\NoteRepository.java
+D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\NoteRequest.java
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\repository\EnrollmentRepository.java
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\controller\TestController.java
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\security\AuthEntryPointJwt.java
@@ -17,8 +20,10 @@ D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Des
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\security\UserDetailsServiceImpl.java
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\SignupRequest.java
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\ELearningApplication.java
+D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\exception\GlobalExceptionHandler.java
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\controller\InstructorController.java
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\security\WebSecurityConfig.java
+D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\Note.java
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\controller\DiagnosticController.java
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\CourseStatus.java
 D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\controller\EndpointListController.java

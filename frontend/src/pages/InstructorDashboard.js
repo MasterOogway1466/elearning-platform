@@ -5,6 +5,8 @@ import CreateCourse from '../components/course/CreateCourse';
 import EditCourse from '../components/course/EditCourse';
 import CourseList from '../components/course/CourseList';
 import EnrolledStudents from '../components/course/EnrolledStudents';
+import CourseDetails from '../components/course/CourseDetails';
+import PendingReviewCourses from '../components/instructor/PendingReviewCourses';
 import './Dashboard.css';
 import { Link } from 'react-router-dom';
 
@@ -20,6 +22,10 @@ const InstructorDashboard = () => {
   const [categories, setCategories] = useState([]);
   const [allCourses, setAllCourses] = useState([]);
   const [rejectedCourses, setRejectedCourses] = useState([]);
+  const [courseToView, setCourseToView] = useState(null);
+  const [courseToDelete, setCourseToDelete] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState('');
 
   const fetchMyCourses = async () => {
     try {
@@ -180,6 +186,54 @@ const InstructorDashboard = () => {
     }
   };
 
+  const handleViewCourseDetails = (courseId) => {
+    setCourseToView(courseId);
+  };
+
+  const handleCloseModal = () => {
+    setCourseToView(null);
+  };
+
+  const handleDeleteCourse = (course) => {
+    setCourseToDelete(course);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteCourse = async () => {
+    try {
+      await axios.delete(
+        `http://localhost:8080/api/instructor/courses/${courseToDelete.id}`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` } }
+      );
+      
+      // Remove course from state
+      setMyCourses(myCourses.filter(course => course.id !== courseToDelete.id));
+      setAllCourses(allCourses.filter(course => course.id !== courseToDelete.id));
+      
+      // Show success message
+      setDeleteSuccess(`"${courseToDelete.title}" has been deleted successfully.`);
+      
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        setDeleteSuccess('');
+      }, 3000);
+      
+      // Close confirmation dialog
+      setShowDeleteConfirm(false);
+      setCourseToDelete(null);
+      
+    } catch (err) {
+      console.error('Error deleting course:', err);
+      setError(err.response?.data?.message || 'Failed to delete course');
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  const cancelDeleteCourse = () => {
+    setShowDeleteConfirm(false);
+    setCourseToDelete(null);
+  };
+
   return (
     <div className="main-content">
       <div className="dashboard-container">
@@ -203,6 +257,12 @@ const InstructorDashboard = () => {
             onClick={() => setActiveTab('createCourse')}
           >
             Create Course
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'underReview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('underReview')}
+          >
+            Under Review
           </button>
           {courseToEdit && (
             <button
@@ -317,21 +377,37 @@ const InstructorDashboard = () => {
                             : course.description}
                         </p>
                         <div className="course-actions">
+                          <button 
+                            className="btn btn-primary me-1"
+                            onClick={() => handleViewCourseDetails(course.id)}
+                          >
+                            <i className="bi bi-eye me-1"></i>
+                            View
+                          </button>
                           {course.status === 'APPROVED' && (
                             <button 
-                              className="btn btn-primary me-2"
+                              className="btn btn-primary me-1"
                               onClick={() => handleViewStudents(course.id)}
                             >
-                              <i className="bi bi-people me-2"></i>
-                              View Students
+                              <i className="bi bi-people me-1"></i>
+                              Students
                             </button>
                           )}
                           <button
-                            className="btn btn-secondary"
+                            className="btn btn-secondary me-1"
                             onClick={() => handleEditCourse(course)}
                           >
-                            <i className="bi bi-pencil me-2"></i>
-                            Edit Course
+                            <i className="bi bi-pencil me-1"></i>
+                            Edit
+                          </button>
+                        </div>
+                        <div className="delete-button-container">
+                          <button
+                            className="btn btn-danger w-100 mt-2"
+                            onClick={() => handleDeleteCourse(course)}
+                          >
+                            <i className="bi bi-trash me-1"></i>
+                            Delete Course
                           </button>
                         </div>
                       </div>
@@ -425,20 +501,36 @@ const InstructorDashboard = () => {
                             : course.description}
                         </p>
                         <div className="course-actions">
-                          <Link to={`/courses/${course.id}`} className="btn btn-primary">
-                            <i className="bi bi-eye me-2"></i>
-                            View Course
-                          </Link>
+                          <button 
+                            className="btn btn-primary"
+                            onClick={() => handleViewCourseDetails(course.id)}
+                          >
+                            <i className="bi bi-eye me-1"></i>
+                            View
+                          </button>
                           {isInstructorCourse(course.id) && (
-                            <button
-                              className="btn btn-secondary ms-2"
-                              onClick={() => handleEditCourse(course)}
-                            >
-                              <i className="bi bi-pencil me-2"></i>
-                              Edit Course
-                            </button>
+                            <>
+                              <button
+                                className="btn btn-secondary ms-1"
+                                onClick={() => handleEditCourse(course)}
+                              >
+                                <i className="bi bi-pencil me-1"></i>
+                                Edit
+                              </button>
+                            </>
                           )}
                         </div>
+                        {isInstructorCourse(course.id) && (
+                          <div className="delete-button-container">
+                            <button
+                              className="btn btn-danger w-100 mt-2"
+                              onClick={() => handleDeleteCourse(course)}
+                            >
+                              <i className="bi bi-trash me-1"></i>
+                              Delete Course
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -518,7 +610,7 @@ const InstructorDashboard = () => {
               ) : (
                 <div className="courses-grid">
                   {rejectedCourses.map(course => (
-                    <div className="course-card" key={course.id}>
+                    <div className="course-card rejected" key={course.id}>
                       <div className="course-image">
                         {course.imageUrl ? (
                           <img src={course.imageUrl} alt={course.title} />
@@ -534,25 +626,44 @@ const InstructorDashboard = () => {
                       <div className="course-details">
                         <h3>{course.title}</h3>
                         <div className="course-category">{course.category}</div>
+                        <div className="rejection-reason">
+                          <strong>Reason:</strong> {course.rejectionReason || 'No reason provided'}
+                        </div>
                         <p className="course-description">
                           {course.description.length > 100
                             ? `${course.description.substring(0, 100)}...`
                             : course.description}
                         </p>
                         <div className="course-actions">
-                          <button
-                            className="btn btn-primary"
-                            onClick={() => handleResubmitCourse(course.id)}
+                          <button 
+                            className="btn btn-primary me-1"
+                            onClick={() => handleViewCourseDetails(course.id)}
                           >
-                            <i className="bi bi-arrow-clockwise me-2"></i>
-                            Resubmit for Review
+                            <i className="bi bi-eye me-1"></i>
+                            View
                           </button>
                           <button
-                            className="btn btn-secondary"
+                            className="btn btn-secondary me-1"
                             onClick={() => handleEditCourse(course)}
                           >
-                            <i className="bi bi-pencil me-2"></i>
-                            Edit Course
+                            <i className="bi bi-pencil me-1"></i>
+                            Edit
+                          </button>
+                          <button
+                            className="btn btn-success me-1"
+                            onClick={() => handleResubmitCourse(course.id)}
+                          >
+                            <i className="bi bi-arrow-clockwise me-1"></i>
+                            Resubmit
+                          </button>
+                        </div>
+                        <div className="delete-button-container">
+                          <button
+                            className="btn btn-danger w-100 mt-2"
+                            onClick={() => handleDeleteCourse(course)}
+                          >
+                            <i className="bi bi-trash me-1"></i>
+                            Delete Course
                           </button>
                         </div>
                       </div>
@@ -560,6 +671,17 @@ const InstructorDashboard = () => {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+          
+          {activeTab === 'underReview' && (
+            <div className="pending-review-section">
+              <div className="section-header">
+                <h2>Courses Under Review</h2>
+              </div>
+              <div className="feature-card">
+                <PendingReviewCourses />
+              </div>
             </div>
           )}
           
@@ -577,6 +699,50 @@ const InstructorDashboard = () => {
           )}
         </div>
       </div>
+      
+      {courseToView && (
+        <CourseDetails 
+          courseId={courseToView}
+          onClose={handleCloseModal}
+        />
+      )}
+      
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="modal-backdrop">
+          <div className="delete-confirm-modal">
+            <div className="delete-confirm-header">
+              <h4>Delete Course</h4>
+            </div>
+            <div className="delete-confirm-body">
+              <p>Are you sure you want to delete "{courseToDelete?.title}"?</p>
+              <p className="text-danger">This action cannot be undone!</p>
+            </div>
+            <div className="delete-confirm-footer">
+              <button 
+                className="btn btn-secondary" 
+                onClick={cancelDeleteCourse}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-danger" 
+                onClick={confirmDeleteCourse}
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Success Message Toast */}
+      {deleteSuccess && (
+        <div className="delete-success-toast">
+          <i className="bi bi-check-circle-fill me-2"></i>
+          {deleteSuccess}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,6 @@
 package com.elearning.controller;
 
+import com.elearning.dto.CourseResponse;
 import com.elearning.model.User;
 import com.elearning.model.Role;
 import com.elearning.model.Course;
@@ -206,7 +207,25 @@ public class AdminController {
     public ResponseEntity<?> getPendingCourses() {
         try {
             List<Course> pendingCourses = courseRepository.findByStatus(CourseStatus.PENDING);
-            return ResponseEntity.ok(pendingCourses);
+
+            List<CourseResponse> courseResponses = pendingCourses.stream()
+                    .map(course -> new CourseResponse(
+                            course.getId(),
+                            course.getTitle(),
+                            course.getDescription(),
+                            course.getImageUrl(),
+                            course.getPdfUrl(),
+                            course.getChapters(),
+                            course.getCategory(),
+                            course.getCourseType(),
+                            course.getStatus(),
+                            course.getInstructor().getId(),
+                            course.getInstructor().getFullName(),
+                            course.getCreatedAt(),
+                            course.getUpdatedAt()))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(courseResponses);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error fetching pending courses: " + e.getMessage());
         }
@@ -221,7 +240,22 @@ public class AdminController {
             course.setStatus(CourseStatus.APPROVED);
             Course updatedCourse = courseRepository.save(course);
 
-            return ResponseEntity.ok(updatedCourse);
+            CourseResponse response = new CourseResponse(
+                    updatedCourse.getId(),
+                    updatedCourse.getTitle(),
+                    updatedCourse.getDescription(),
+                    updatedCourse.getImageUrl(),
+                    updatedCourse.getPdfUrl(),
+                    updatedCourse.getChapters(),
+                    updatedCourse.getCategory(),
+                    updatedCourse.getCourseType(),
+                    updatedCourse.getStatus(),
+                    updatedCourse.getInstructor().getId(),
+                    updatedCourse.getInstructor().getFullName(),
+                    updatedCourse.getCreatedAt(),
+                    updatedCourse.getUpdatedAt());
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error approving course: " + e.getMessage());
         }
@@ -236,7 +270,22 @@ public class AdminController {
             course.setStatus(CourseStatus.REJECTED);
             Course updatedCourse = courseRepository.save(course);
 
-            return ResponseEntity.ok(updatedCourse);
+            CourseResponse response = new CourseResponse(
+                    updatedCourse.getId(),
+                    updatedCourse.getTitle(),
+                    updatedCourse.getDescription(),
+                    updatedCourse.getImageUrl(),
+                    updatedCourse.getPdfUrl(),
+                    updatedCourse.getChapters(),
+                    updatedCourse.getCategory(),
+                    updatedCourse.getCourseType(),
+                    updatedCourse.getStatus(),
+                    updatedCourse.getInstructor().getId(),
+                    updatedCourse.getInstructor().getFullName(),
+                    updatedCourse.getCreatedAt(),
+                    updatedCourse.getUpdatedAt());
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error rejecting course: " + e.getMessage());
         }

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './AdminComponents.css';
+import UserProfileModal from './UserProfileModal';
 
 const StudentList = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -23,6 +26,16 @@ const StudentList = () => {
 
     fetchStudents();
   }, []);
+
+  const handleViewStudent = (studentId) => {
+    setSelectedStudentId(studentId);
+    setShowProfileModal(true);
+  };
+
+  const closeProfileModal = () => {
+    setShowProfileModal(false);
+    setSelectedStudentId(null);
+  };
 
   if (loading) return <div className="loading">Loading students...</div>;
   if (error) return <div className="error">{error}</div>;
@@ -65,9 +78,7 @@ const StudentList = () => {
                 <td>
                   <button
                     className="btn-view"
-                    onClick={() => {
-                      // Implement view details functionality
-                    }}
+                    onClick={() => handleViewStudent(student.id)}
                   >
                     View
                   </button>
@@ -85,6 +96,14 @@ const StudentList = () => {
           </tbody>
         </table>
       </div>
+
+      {showProfileModal && selectedStudentId && (
+        <UserProfileModal 
+          userId={selectedStudentId}
+          userType="student"
+          onClose={closeProfileModal}
+        />
+      )}
     </div>
   );
 };

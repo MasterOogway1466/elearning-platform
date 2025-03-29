@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import StudentList from '../components/admin/StudentList';
 import InstructorList from '../components/admin/InstructorList';
 import PendingCourses from '../components/admin/PendingCourses';
+import CourseDetails from '../components/course/CourseDetails';
 import Profile from './Profile';
 import '../components/admin/AdminComponents.css';
 
@@ -15,6 +16,7 @@ const AdminDashboard = () => {
     totalCourses: 0,
     pendingCourses: 0
   });
+  const [selectedCourseId, setSelectedCourseId] = useState(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -37,6 +39,19 @@ const AdminDashboard = () => {
 
     fetchStats();
   }, []);
+
+  const handleViewCourseDetails = (courseId) => {
+    setSelectedCourseId(courseId);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedCourseId(null);
+  };
+
+  // Make CourseDetails component available to child components
+  const courseDetailsProps = {
+    onViewCourse: handleViewCourseDetails
+  };
 
   if (!isAdmin) {
     return <div>Access denied. Admin privileges required.</div>;
@@ -65,13 +80,13 @@ const AdminDashboard = () => {
         </div>
 
         <div className="admin-actions">
-          <button 
+          {/* <button 
             className={`admin-button ${activeTab === 'dashboard' ? 'active' : ''}`}
             onClick={() => setActiveTab('dashboard')}
           >
             <i className="fas fa-tachometer-alt"></i>
             Dashboard
-          </button>
+          </button> */}
           <button 
             className={`admin-button ${activeTab === 'students' ? 'active' : ''}`}
             onClick={() => setActiveTab('students')}
@@ -111,10 +126,17 @@ const AdminDashboard = () => {
           )}
           {activeTab === 'students' && <StudentList />}
           {activeTab === 'instructors' && <InstructorList />}
-          {activeTab === 'pending-courses' && <PendingCourses />}
+          {activeTab === 'pending-courses' && <PendingCourses onViewCourse={handleViewCourseDetails} />}
           {activeTab === 'profile' && <Profile />}
         </div>
       </div>
+      
+      {selectedCourseId && (
+        <CourseDetails 
+          courseId={selectedCourseId}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 };

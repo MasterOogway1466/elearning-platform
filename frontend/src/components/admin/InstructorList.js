@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './AdminComponents.css';
+import UserProfileModal from './UserProfileModal';
 
 const InstructorList = () => {
   const [instructors, setInstructors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedInstructorId, setSelectedInstructorId] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     const fetchInstructors = async () => {
@@ -23,6 +26,16 @@ const InstructorList = () => {
 
     fetchInstructors();
   }, []);
+
+  const handleViewInstructor = (instructorId) => {
+    setSelectedInstructorId(instructorId);
+    setShowProfileModal(true);
+  };
+
+  const closeProfileModal = () => {
+    setShowProfileModal(false);
+    setSelectedInstructorId(null);
+  };
 
   if (loading) return <div className="loading">Loading instructors...</div>;
   if (error) return <div className="error">{error}</div>;
@@ -65,9 +78,7 @@ const InstructorList = () => {
                 <td>
                   <button
                     className="btn-view"
-                    onClick={() => {
-                      // Implement view details functionality
-                    }}
+                    onClick={() => handleViewInstructor(instructor.id)}
                   >
                     View
                   </button>
@@ -85,6 +96,14 @@ const InstructorList = () => {
           </tbody>
         </table>
       </div>
+
+      {showProfileModal && selectedInstructorId && (
+        <UserProfileModal 
+          userId={selectedInstructorId}
+          userType="instructor"
+          onClose={closeProfileModal}
+        />
+      )}
     </div>
   );
 };
