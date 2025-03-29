@@ -11,10 +11,13 @@ import com.elearning.model.Enrollment;
 import com.elearning.model.Note;
 import com.elearning.model.User;
 import com.elearning.model.UserType;
+import com.elearning.model.ChapterDetail;
+import com.elearning.dto.ChapterDetailResponse;
 import com.elearning.repository.CourseRepository;
 import com.elearning.repository.EnrollmentRepository;
 import com.elearning.repository.NoteRepository;
 import com.elearning.repository.UserRepository;
+import com.elearning.repository.ChapterDetailRepository;
 import com.elearning.security.services.UserDetailsImpl;
 import com.elearning.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +51,9 @@ public class StudentController {
 
     @Autowired
     private NoteRepository noteRepository;
+
+    @Autowired
+    private ChapterDetailRepository chapterDetailRepository;
 
     @Autowired
     private UserService userService;
@@ -595,5 +601,61 @@ public class StudentController {
                     null);
             return ResponseEntity.ok(emptyResponse);
         }
+    }
+
+    @GetMapping("/course/{courseId}/chapter/{chapterIndex}/details")
+    public ResponseEntity<?> getChapterDetails(
+            @PathVariable Long courseId,
+            @PathVariable Integer chapterIndex,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        User student = userOpt.get();
+
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        Course course = courseOpt.get();
+
+        // Check if the student is enrolled in this course
+        if (!enrollmentRepository.existsByStudentAndCourse(student, course)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not enrolled in this course"));
+        }
+
+        // First try to get the chapter detail with the instructor
+        Optional<ChapterDetail> chapterDetailOpt = chapterDetailRepository
+                .findByCourseAndChapterIndex(course, chapterIndex);
+
+        if (!chapterDetailOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Chapter detail not found");
+        }
+
+        ChapterDetail detail = chapterDetailOpt.get();
+        ChapterDetailResponse response = new ChapterDetailResponse(
+                detail.getId(),
+                detail.getChapterIndex(),
+                detail.getTitle(),
+                detail.getContent(),
+                detail.getObjectives(),
+                detail.getResources(),
+                detail.getCourse().getId(),
+                detail.getInstructor().getId(),
+                detail.getInstructor().getFullName(),
+                detail.getCreatedAt(),
+                detail.getUpdatedAt());
+
+        return ResponseEntity.ok(response);
     }
 }

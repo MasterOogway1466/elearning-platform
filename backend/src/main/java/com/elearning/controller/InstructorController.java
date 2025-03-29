@@ -8,9 +8,13 @@ import com.elearning.model.CourseStatus;
 import com.elearning.model.CourseType;
 import com.elearning.model.Enrollment;
 import com.elearning.model.User;
+import com.elearning.model.ChapterDetail;
+import com.elearning.dto.ChapterDetailRequest;
+import com.elearning.dto.ChapterDetailResponse;
 import com.elearning.repository.CourseRepository;
 import com.elearning.repository.EnrollmentRepository;
 import com.elearning.repository.UserRepository;
+import com.elearning.repository.ChapterDetailRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -41,6 +45,9 @@ public class InstructorController {
 
     @Autowired
     private EnrollmentRepository enrollmentRepository;
+
+    @Autowired
+    private ChapterDetailRepository chapterDetailRepository;
 
     @GetMapping("/dashboard")
     public ResponseEntity<?> getInstructorDashboard() {
@@ -141,6 +148,22 @@ public class InstructorController {
             newCourse.setInstructor(user);
 
             Course savedCourse = courseRepository.save(newCourse);
+
+            // Save chapter details if provided
+            if (courseRequest.getChapterDetails() != null && !courseRequest.getChapterDetails().isEmpty()) {
+                for (ChapterDetailRequest detailRequest : courseRequest.getChapterDetails()) {
+                    ChapterDetail chapterDetail = new ChapterDetail();
+                    chapterDetail.setChapterIndex(detailRequest.getChapterIndex());
+                    chapterDetail.setTitle(detailRequest.getTitle());
+                    chapterDetail.setContent(detailRequest.getContent());
+                    chapterDetail.setObjectives(detailRequest.getObjectives());
+                    chapterDetail.setResources(detailRequest.getResources());
+                    chapterDetail.setCourse(savedCourse);
+                    chapterDetail.setInstructor(user);
+
+                    chapterDetailRepository.save(chapterDetail);
+                }
+            }
 
             CourseResponse response = new CourseResponse(
                     savedCourse.getId(),
@@ -679,5 +702,214 @@ public class InstructorController {
             e.printStackTrace();
             return ResponseEntity.badRequest().body("Error deleting course: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/courses/{courseId}/chapters")
+    public ResponseEntity<?> getCourseChapterDetails(
+            @PathVariable Long courseId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        User instructor = userOpt.get();
+        Course course = courseOpt.get();
+
+        // Get all chapter details for this course and instructor
+        List<ChapterDetail> chapterDetails = chapterDetailRepository.findByCourseAndInstructor(course, instructor);
+
+        List<ChapterDetailResponse> responses = chapterDetails.stream()
+                .map(detail -> new ChapterDetailResponse(
+                        detail.getId(),
+                        detail.getChapterIndex(),
+                        detail.getTitle(),
+                        detail.getContent(),
+                        detail.getObjectives(),
+                        detail.getResources(),
+                        detail.getCourse().getId(),
+                        detail.getInstructor().getId(),
+                        detail.getInstructor().getFullName(),
+                        detail.getCreatedAt(),
+                        detail.getUpdatedAt()))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/courses/{courseId}/chapters/{chapterIndex}")
+    public ResponseEntity<?> getChapterDetail(
+            @PathVariable Long courseId,
+            @PathVariable Integer chapterIndex,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        User instructor = userOpt.get();
+        Course course = courseOpt.get();
+
+        // Get the chapter detail
+        Optional<ChapterDetail> chapterDetailOpt = chapterDetailRepository
+                .findByCourseAndInstructorAndChapterIndex(course, instructor, chapterIndex);
+
+        if (!chapterDetailOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Chapter detail not found");
+        }
+
+        ChapterDetail detail = chapterDetailOpt.get();
+        ChapterDetailResponse response = new ChapterDetailResponse(
+                detail.getId(),
+                detail.getChapterIndex(),
+                detail.getTitle(),
+                detail.getContent(),
+                detail.getObjectives(),
+                detail.getResources(),
+                detail.getCourse().getId(),
+                detail.getInstructor().getId(),
+                detail.getInstructor().getFullName(),
+                detail.getCreatedAt(),
+                detail.getUpdatedAt());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/courses/{courseId}/chapters")
+    public ResponseEntity<?> createOrUpdateChapterDetail(
+            @PathVariable Long courseId,
+            @RequestBody ChapterDetailRequest detailRequest,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        User instructor = userOpt.get();
+        Course course = courseOpt.get();
+
+        // Check if the instructor owns this course
+        if (!course.getInstructor().getId().equals(instructor.getId())) {
+            return ResponseEntity.status(403).body("You are not authorized to update this course");
+        }
+
+        // Check if a chapter detail for this index already exists
+        Optional<ChapterDetail> existingDetailOpt = chapterDetailRepository
+                .findByCourseAndInstructorAndChapterIndex(course, instructor, detailRequest.getChapterIndex());
+
+        ChapterDetail chapterDetail;
+
+        if (existingDetailOpt.isPresent()) {
+            // Update existing chapter detail
+            chapterDetail = existingDetailOpt.get();
+            chapterDetail.setTitle(detailRequest.getTitle());
+            chapterDetail.setContent(detailRequest.getContent());
+            chapterDetail.setObjectives(detailRequest.getObjectives());
+            chapterDetail.setResources(detailRequest.getResources());
+            // updatedAt will be set by @PreUpdate
+        } else {
+            // Create new chapter detail
+            chapterDetail = new ChapterDetail();
+            chapterDetail.setChapterIndex(detailRequest.getChapterIndex());
+            chapterDetail.setTitle(detailRequest.getTitle());
+            chapterDetail.setContent(detailRequest.getContent());
+            chapterDetail.setObjectives(detailRequest.getObjectives());
+            chapterDetail.setResources(detailRequest.getResources());
+            chapterDetail.setCourse(course);
+            chapterDetail.setInstructor(instructor);
+        }
+
+        ChapterDetail savedDetail = chapterDetailRepository.save(chapterDetail);
+
+        ChapterDetailResponse response = new ChapterDetailResponse(
+                savedDetail.getId(),
+                savedDetail.getChapterIndex(),
+                savedDetail.getTitle(),
+                savedDetail.getContent(),
+                savedDetail.getObjectives(),
+                savedDetail.getResources(),
+                savedDetail.getCourse().getId(),
+                savedDetail.getInstructor().getId(),
+                savedDetail.getInstructor().getFullName(),
+                savedDetail.getCreatedAt(),
+                savedDetail.getUpdatedAt());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/courses/{courseId}/chapters/{chapterIndex}")
+    public ResponseEntity<?> deleteChapterDetail(
+            @PathVariable Long courseId,
+            @PathVariable Integer chapterIndex,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        User instructor = userOpt.get();
+        Course course = courseOpt.get();
+
+        // Check if the instructor owns this course
+        if (!course.getInstructor().getId().equals(instructor.getId())) {
+            return ResponseEntity.status(403).body("You are not authorized to delete chapter details for this course");
+        }
+
+        // Find the chapter detail
+        Optional<ChapterDetail> chapterDetailOpt = chapterDetailRepository
+                .findByCourseAndInstructorAndChapterIndex(course, instructor, chapterIndex);
+
+        if (!chapterDetailOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Chapter detail not found");
+        }
+
+        // Delete the chapter detail
+        chapterDetailRepository.delete(chapterDetailOpt.get());
+
+        return ResponseEntity.ok(new MessageResponse("Chapter detail deleted successfully"));
     }
 }

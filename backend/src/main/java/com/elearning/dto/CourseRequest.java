@@ -27,6 +27,9 @@ public class CourseRequest {
 
     private List<String> chapters = new ArrayList<>();
 
+    // New field for chapter details
+    private List<ChapterDetailRequest> chapterDetails = new ArrayList<>();
+
     @NotBlank(message = "Category cannot be empty")
     private String category;
 
@@ -37,6 +40,7 @@ public class CourseRequest {
     public CourseRequest() {
         // Initialize with empty values
         this.chapters = new ArrayList<>();
+        this.chapterDetails = new ArrayList<>();
     }
 
     // Prevent null fields by providing default values
@@ -49,5 +53,7 @@ public class CourseRequest {
             this.category = "";
         if (this.chapters == null)
             this.chapters = new ArrayList<>();
+        if (this.chapterDetails == null)
+            this.chapterDetails = new ArrayList<>();
     }
 }

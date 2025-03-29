@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import authHeader from '../../services/auth-header';
+import ChapterDetailForm from './ChapterDetailForm';
 import '../../pages/Dashboard.css';
 
 const EditCourse = ({ course, onSuccess, onCancel }) => {
@@ -10,6 +11,7 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
     imageUrl: '',
     pdfUrl: '',
     chapters: [''],
+    chapterDetails: [],
     category: '',
     courseType: 'STUDENT' // Default course type
   });
@@ -17,24 +19,49 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
+  const [activeChapterIndex, setActiveChapterIndex] = useState(null);
+  const [showChapterDetailForm, setShowChapterDetailForm] = useState(false);
 
   // Load course data when component mounts or course changes
   useEffect(() => {
-    if (course) {
-      setCourseData({
-        title: course.title || '',
-        description: course.description || '',
-        imageUrl: course.imageUrl || '',
-        pdfUrl: course.pdfUrl || '',
-        chapters: course.chapters && course.chapters.length > 0 ? [...course.chapters] : [''],
-        category: course.category || '',
-        courseType: course.courseType || 'STUDENT'
-      });
-      
-      if (course.imageUrl) {
-        setImagePreview(course.imageUrl);
+    const loadCourseData = async () => {
+      if (course) {
+        try {
+          // First set the basic course data
+          setCourseData({
+            title: course.title || '',
+            description: course.description || '',
+            imageUrl: course.imageUrl || '',
+            pdfUrl: course.pdfUrl || '',
+            chapters: course.chapters && course.chapters.length > 0 ? [...course.chapters] : [''],
+            chapterDetails: [],
+            category: course.category || '',
+            courseType: course.courseType || 'STUDENT'
+          });
+          
+          if (course.imageUrl) {
+            setImagePreview(course.imageUrl);
+          }
+
+          // Then fetch chapter details
+          const chapterDetailsResponse = await axios.get(
+            `http://localhost:8080/api/instructor/courses/${course.id}/chapters`,
+            { headers: authHeader() }
+          );
+
+          // Update course data with chapter details
+          setCourseData(prevData => ({
+            ...prevData,
+            chapterDetails: chapterDetailsResponse.data || []
+          }));
+        } catch (err) {
+          console.error('Error loading course data:', err);
+          setError('Failed to load course details. Please try again.');
+        }
       }
-    }
+    };
+
+    loadCourseData();
   }, [course]);
 
   const handleChange = (e) => {
@@ -54,9 +81,19 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
   const handleChapterChange = (index, value) => {
     const updatedChapters = [...courseData.chapters];
     updatedChapters[index] = value;
+    
+    // Update chapter details if they exist
+    const updatedChapterDetails = courseData.chapterDetails.map(detail => {
+      if (detail.chapterIndex === index) {
+        return { ...detail, title: value };
+      }
+      return detail;
+    });
+    
     setCourseData({
       ...courseData,
-      chapters: updatedChapters
+      chapters: updatedChapters,
+      chapterDetails: updatedChapterDetails
     });
   };
 
@@ -70,10 +107,71 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
   const removeChapter = (index) => {
     const updatedChapters = [...courseData.chapters];
     updatedChapters.splice(index, 1);
+    
+    // Also remove chapter details if they exist
+    const updatedChapterDetails = courseData.chapterDetails.filter(
+      detail => detail.chapterIndex !== index
+    );
+    
+    // Adjust chapterIndex for details of chapters that come after the removed chapter
+    const adjustedChapterDetails = updatedChapterDetails.map(detail => {
+      if (detail.chapterIndex > index) {
+        return { ...detail, chapterIndex: detail.chapterIndex - 1 };
+      }
+      return detail;
+    });
+    
     setCourseData({
       ...courseData,
-      chapters: updatedChapters.length ? updatedChapters : ['']  // Always keep at least one chapter field
+      chapters: updatedChapters.length ? updatedChapters : [''],
+      chapterDetails: adjustedChapterDetails
     });
+  };
+
+  const handleAddChapterDetail = (index) => {
+    setActiveChapterIndex(index);
+    setShowChapterDetailForm(true);
+  };
+
+  const handleChapterDetailSubmit = (detailData) => {
+    // Check if there's already a detail for this chapter
+    const existingDetailIndex = courseData.chapterDetails.findIndex(
+      detail => detail.chapterIndex === activeChapterIndex
+    );
+    
+    let updatedChapterDetails;
+    
+    if (existingDetailIndex !== -1) {
+      // Update existing chapter detail
+      updatedChapterDetails = [...courseData.chapterDetails];
+      updatedChapterDetails[existingDetailIndex] = {
+        ...detailData,
+        chapterIndex: activeChapterIndex
+      };
+    } else {
+      // Add new chapter detail
+      updatedChapterDetails = [
+        ...courseData.chapterDetails,
+        { ...detailData, chapterIndex: activeChapterIndex }
+      ];
+    }
+    
+    setCourseData({
+      ...courseData,
+      chapterDetails: updatedChapterDetails
+    });
+    
+    setShowChapterDetailForm(false);
+    setActiveChapterIndex(null);
+  };
+
+  const handleCancelChapterDetail = () => {
+    setShowChapterDetailForm(false);
+    setActiveChapterIndex(null);
+  };
+
+  const hasChapterDetail = (index) => {
+    return courseData.chapterDetails.some(detail => detail.chapterIndex === index);
   };
 
   const handleSubmit = async (e) => {
@@ -119,25 +217,24 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
       chapters: filteredChapters
     };
     
-    // Debug logging
-    console.log('Course being edited:', course);
-    console.log('Course ID:', course.id);
-    console.log('Course data being sent:', dataToSend);
-    console.log('Title:', dataToSend.title, 'Length:', dataToSend.title?.length);
-    console.log('Description:', dataToSend.description, 'Length:', dataToSend.description?.length);
-    console.log('Category:', dataToSend.category);
-    console.log('Course Type:', dataToSend.courseType);
-    console.log('Chapters:', dataToSend.chapters);
-    
     try {
-      // Use the simpler update endpoint to avoid validation issues
+      // First update the course
       const response = await axios.post(
         `http://localhost:8080/api/instructor/courses/${course.id}/simple-update`,
         dataToSend,
         { headers: authHeader() }
       );
       
-      console.log('Response from server:', response.data);
+      // Then update chapter details if they exist
+      if (courseData.chapterDetails.length > 0) {
+        for (const detail of courseData.chapterDetails) {
+          await axios.post(
+            `http://localhost:8080/api/instructor/courses/${course.id}/chapters`,
+            detail,
+            { headers: authHeader() }
+          );
+        }
+      }
       
       setSuccess(true);
       
@@ -145,46 +242,16 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
       if (onSuccess) {
         onSuccess(response.data);
       }
-      
-      // Show success message for 2 seconds, then call onCancel
-      setTimeout(() => {
-        if (onCancel) {
-          onCancel();
-        }
-      }, 2000);
-      
     } catch (err) {
       console.error('Error updating course:', err);
-      console.error('Error response:', err.response?.data);
-      
-      // Extract detailed error message
-      let errorMessage = 'Failed to update course';
-      if (err.response?.data) {
-        if (typeof err.response.data === 'string') {
-          errorMessage = err.response.data;
-        } else if (err.response.data.message) {
-          errorMessage = err.response.data.message;
-        } else if (err.response.data.error) {
-          // If we have detailed validation errors
-          if (err.response.data.details) {
-            const details = err.response.data.details;
-            errorMessage = 'Validation errors: ' + 
-              Object.keys(details).map(key => `${key}: ${details[key]}`).join(', ');
-          } else {
-            errorMessage = err.response.data.error;
-          }
-        }
-      }
-      setError(errorMessage);
+      setError(err.response?.data || 'Failed to update course. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="create-course-container">
-      <h2>Edit Course</h2>
-      
+    <div className="edit-course-container">
       {success && (
         <div className="alert alert-success">
           Course updated successfully!
@@ -198,169 +265,182 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
         </div>
       )}
       
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="title">Course Title</label>
-          <input
-            type="text"
-            className="form-control"
-            id="title"
-            name="title"
-            value={courseData.title}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="description">Description</label>
-          <textarea
-            className="form-control"
-            id="description"
-            name="description"
-            rows="4"
-            value={courseData.description}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="category">Category</label>
-          <select
-            className="form-control"
-            id="category"
-            name="category"
-            value={courseData.category}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select a category</option>
-            <option value="Programming">Programming</option>
-            <option value="Data Science">Data Science</option>
-            <option value="Web Development">Web Development</option>
-            <option value="Design">Design</option>
-            <option value="Business">Business</option>
-            <option value="Marketing">Marketing</option>
-            <option value="Finance">Finance</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="courseType">Course Type</label>
-          <select
-            className="form-control"
-            id="courseType"
-            name="courseType"
-            value={courseData.courseType}
-            onChange={handleChange}
-            required
-          >
-            <option value="STUDENT">Student</option>
-            <option value="PROFESSIONAL">Professional</option>
-            <option value="PLACEMENT_TRAINING">Placement Training</option>
-          </select>
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="imageUrl">Image URL</label>
-          <input
-            type="text"
-            className="form-control"
-            id="imageUrl"
-            name="imageUrl"
-            value={courseData.imageUrl}
-            onChange={handleChange}
-            placeholder="Enter image URL"
-          />
+      {showChapterDetailForm ? (
+        <ChapterDetailForm 
+          chapterName={courseData.chapters[activeChapterIndex]} 
+          initialData={courseData.chapterDetails.find(detail => detail.chapterIndex === activeChapterIndex)} 
+          onSubmit={handleChapterDetailSubmit}
+          onCancel={handleCancelChapterDetail}
+        />
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="title">Course Title</label>
+            <input
+              type="text"
+              className="form-control"
+              id="title"
+              name="title"
+              value={courseData.title}
+              onChange={handleChange}
+              required
+            />
+          </div>
           
-          {/* Image preview */}
-          {imagePreview && (
-            <div className="image-preview mt-3">
-              <label>Image Preview:</label>
-              <img 
-                src={imagePreview} 
-                alt="Course preview" 
-                style={{ maxWidth: '100%', maxHeight: '200px', display: 'block', marginTop: '10px', border: '1px solid #ddd', borderRadius: '4px', padding: '5px' }} 
-              />
-            </div>
-          )}
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="pdfUrl">Course PDF URL (Optional)</label>
-          <input
-            type="text"
-            className="form-control"
-            id="pdfUrl"
-            name="pdfUrl"
-            value={courseData.pdfUrl}
-            onChange={handleChange}
-            placeholder="Link to PDF file"
-          />
-        </div>
-        
-        <div className="form-group">
-          <label>Chapter Names</label>
-          {courseData.chapters.map((chapter, index) => (
-            <div key={index} className="chapter-input-group">
-              <input
-                type="text"
-                className="form-control"
-                placeholder={`Chapter ${index + 1}`}
-                value={chapter}
-                onChange={(e) => handleChapterChange(index, e.target.value)}
-              />
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={() => removeChapter(index)}
-                disabled={courseData.chapters.length === 1}
-              >
-                <i className="bi bi-trash me-1"></i>
-                Delete
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            className="btn-add-chapter"
-            onClick={addChapter}
-          >
-            <i className="bi bi-plus-circle me-2"></i>
-            Add Another Chapter
-          </button>
-        </div>
-        
-        <div className="form-group d-flex justify-content-between mt-4">
-          <button 
-            type="button" 
-            className="btn btn-secondary"
-            onClick={onCancel}
-          >
-            <i className="bi bi-x-circle me-2"></i>
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            className="submit-button"
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <i className="bi bi-hourglass-split me-2"></i>
-                Updating Course...
-              </>
-            ) : (
-              <>
-                <i className="bi bi-check-circle me-2"></i>
-                Update Course
-              </>
+          <div className="form-group">
+            <label htmlFor="description">Description</label>
+            <textarea
+              className="form-control"
+              id="description"
+              name="description"
+              rows="4"
+              value={courseData.description}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="imageUrl">Course Image URL</label>
+            <input
+              type="text"
+              className="form-control"
+              id="imageUrl"
+              name="imageUrl"
+              value={courseData.imageUrl}
+              onChange={handleChange}
+            />
+            {imagePreview && (
+              <div className="mt-2">
+                <img 
+                  src={imagePreview} 
+                  alt="Course preview" 
+                  style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'cover' }}
+                />
+              </div>
             )}
-          </button>
-        </div>
-      </form>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="pdfUrl">Course PDF URL</label>
+            <input
+              type="text"
+              className="form-control"
+              id="pdfUrl"
+              name="pdfUrl"
+              value={courseData.pdfUrl}
+              onChange={handleChange}
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="category">Category</label>
+            <input
+              type="text"
+              className="form-control"
+              id="category"
+              name="category"
+              value={courseData.category}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="courseType">Course Type</label>
+            <select
+              className="form-control"
+              id="courseType"
+              name="courseType"
+              value={courseData.courseType}
+              onChange={handleChange}
+              required
+            >
+              <option value="STUDENT">Student Course</option>
+              <option value="PROFESSIONAL">Professional Course</option>
+            </select>
+          </div>
+          
+          <div className="form-group">
+            <label>Chapters</label>
+            {courseData.chapters.map((chapter, index) => (
+              <div key={index} className="chapter-container">
+                <div className="chapter-input-group">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder={`Chapter ${index + 1}`}
+                    value={chapter}
+                    onChange={(e) => handleChapterChange(index, e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={() => removeChapter(index)}
+                    disabled={courseData.chapters.length === 1}
+                  >
+                    <i className="bi bi-trash me-1"></i>
+                    Delete
+                  </button>
+                </div>
+                
+                <div className="chapter-detail-button-container">
+                  <button
+                    type="button"
+                    className={`btn ${hasChapterDetail(index) ? 'btn-success' : 'btn-outline-primary'}`}
+                    onClick={() => handleAddChapterDetail(index)}
+                  >
+                    <i className={`bi ${hasChapterDetail(index) ? 'bi-pencil-square' : 'bi-plus-circle'} me-1`}></i>
+                    {hasChapterDetail(index) ? 'Edit Chapter Details' : 'Add Chapter Details'}
+                  </button>
+                  {hasChapterDetail(index) && (
+                    <span className="chapter-detail-badge">
+                      <i className="bi bi-check-circle-fill me-1"></i>
+                      Details Added
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="btn-add-chapter"
+              onClick={addChapter}
+            >
+              <i className="bi bi-plus-circle me-2"></i>
+              Add Another Chapter
+            </button>
+          </div>
+          
+          <div className="form-group d-flex justify-content-between mt-4">
+            <button 
+              type="button" 
+              className="btn btn-secondary"
+              onClick={onCancel}
+            >
+              <i className="bi bi-x-circle me-2"></i>
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="submit-button"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <i className="bi bi-hourglass-split me-2"></i>
+                  Updating Course...
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-check-circle me-2"></i>
+                  Update Course
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 };

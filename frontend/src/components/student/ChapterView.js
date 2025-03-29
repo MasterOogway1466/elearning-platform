@@ -17,6 +17,10 @@ const ChapterView = () => {
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
   const [notesError, setNotesError] = useState('');
+  const [chapterDetail, setChapterDetail] = useState(null);
+  const [loadingChapterDetail, setLoadingChapterDetail] = useState(false);
+  const [chapterDetailError, setChapterDetailError] = useState(null);
+  const [showObjectives, setShowObjectives] = useState(false);
 
   useEffect(() => {
     const fetchCourseDetails = async () => {
@@ -48,9 +52,10 @@ const ChapterView = () => {
   }, [chapterIndex]);
 
   useEffect(() => {
-    // Fetch notes when chapter changes
+    // Fetch notes and chapter details when chapter changes
     if (courseId && activeChapterIndex !== null && activeChapterIndex !== undefined) {
       fetchChapterNotes();
+      fetchChapterDetail();
     }
   }, [courseId, activeChapterIndex]);
 
@@ -70,6 +75,26 @@ const ChapterView = () => {
     } catch (err) {
       console.error('Failed to load notes:', err);
       setNotesError('Failed to load notes. Please try again.');
+    }
+  };
+
+  const fetchChapterDetail = async () => {
+    try {
+      setLoadingChapterDetail(true);
+      setChapterDetailError(null);
+      
+      const response = await axios.get(
+        `http://localhost:8080/api/student/course/${courseId}/chapter/${activeChapterIndex}/details`,
+        { headers: authHeader() }
+      );
+      
+      setChapterDetail(response.data);
+    } catch (err) {
+      console.error('Failed to load chapter details:', err);
+      setChapterDetailError('Chapter details not available.');
+      setChapterDetail(null);
+    } finally {
+      setLoadingChapterDetail(false);
     }
   };
 
@@ -110,6 +135,10 @@ const ChapterView = () => {
 
   const handleBackToCourse = () => {
     navigate(`/student/course/${courseId}`);
+  };
+
+  const toggleObjectives = () => {
+    setShowObjectives(!showObjectives);
   };
 
   if (loading) {
@@ -202,13 +231,73 @@ const ChapterView = () => {
           
           <div className="chapter-content-wrapper">
             <div className={`chapter-content-body ${showNotesPanel ? 'with-notes' : ''}`}>
-              {/* This is where the actual chapter content would go. */}
-              {/* For now, we'll display a placeholder */}
+              {loadingChapterDetail ? (
+                <div className="chapter-loading">
+                  <i className="bi bi-hourglass-split"></i>
+                  <p>Loading chapter content...</p>
+                </div>
+              ) : chapterDetailError ? (
+                <div className="chapter-info-section">
+                  <h3>Chapter Information</h3>
+                  <p>This is chapter {activeChapterIndex + 1} of the course "{course.title}".</p>
+                  <p>{chapterDetailError}</p>
+                  <p>Additional chapter content would be displayed here, including text, images, videos, etc.</p>
+                </div>
+              ) : chapterDetail ? (
+                <div className="chapter-detail-content">
+                  {chapterDetail.objectives && (
+                    <button
+                      className="objectives-toggle-btn"
+                      onClick={toggleObjectives}
+                    >
+                      <i className={`bi ${showObjectives ? 'bi-x-circle' : 'bi-check-square'} me-2`}></i>
+                      {showObjectives ? 'Hide Learning Objectives' : 'View Learning Objectives'}
+                    </button>
+                  )}
+                  
+                  {showObjectives && chapterDetail.objectives && (
+                    <div className="objectives-popup" onClick={toggleObjectives}>
+                      <div className="objectives-popup-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="objectives-popup-header">
+                          <h4><i className="bi bi-check-square me-2"></i>Learning Objectives</h4>
+                          <button
+                            className="objectives-close-btn"
+                            onClick={toggleObjectives}
+                          >
+                            <i className="bi bi-x-lg"></i>
+                          </button>
+                        </div>
+                        <div className="chapter-objectives">
+                          <div dangerouslySetInnerHTML={{ __html: chapterDetail.objectives }} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="chapter-section">
+                    {chapterDetail.content && (
+                      <div className="chapter-content">
+                        <div dangerouslySetInnerHTML={{ __html: chapterDetail.content }} />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {chapterDetail.resources && (
+                    <div className="chapter-section">
+                      <h4><i className="bi bi-link-45deg me-2"></i>Additional Resources</h4>
+                      <div className="chapter-resources">
+                        <div dangerouslySetInnerHTML={{ __html: chapterDetail.resources }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
               <div className="chapter-info-section">
                 <h3>Chapter Information</h3>
                 <p>This is chapter {activeChapterIndex + 1} of the course "{course.title}".</p>
                 <p>Additional chapter content would be displayed here, including text, images, videos, etc.</p>
               </div>
+              )}
 
               <div className="chapter-navigation">
                 {activeChapterIndex > 0 && (
