@@ -19,6 +19,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.elearning.dto.CourseDTO;
+import com.elearning.dto.MentoringSessionDTO;
+import com.elearning.service.CourseService;
+import com.elearning.service.InstructorService;
+import com.elearning.service.MentoringService;
+import com.elearning.service.StudentService;
+
 @CrossOrigin(origins = "http://localhost:3000", maxAge = 3600)
 @RestController
 @RequestMapping("/api/admin")
@@ -31,29 +38,40 @@ public class AdminController {
     @Autowired
     private CourseRepository courseRepository;
 
+    @Autowired
+    private StudentService studentService;
+
+    @Autowired
+    private InstructorService instructorService;
+
+    @Autowired
+    private CourseService courseService;
+
+    @Autowired
+    private MentoringService mentoringService;
+
     @GetMapping("/stats")
-    public ResponseEntity<?> getDashboardStats() {
-        try {
-            List<User> allUsers = userRepository.findAll();
-            long totalStudents = allUsers.stream()
-                    .filter(user -> user.getRoles().contains(Role.ROLE_STUDENT.name()))
-                    .count();
-            long totalInstructors = allUsers.stream()
-                    .filter(user -> user.getRoles().contains(Role.ROLE_INSTRUCTOR.name()))
-                    .count();
-            long totalCourses = courseRepository.countByStatus(CourseStatus.APPROVED);
-            long pendingCourses = courseRepository.countByStatus(CourseStatus.PENDING);
+    public ResponseEntity<Map<String, Object>> getStats() {
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalStudents", studentService.countStudents());
+        stats.put("totalInstructors", instructorService.countInstructors());
+        stats.put("totalCourses", courseService.countAllCourses());
+        stats.put("pendingCourses", courseService.countPendingCourses());
+        stats.put("approvedCourses", courseService.countApprovedCourses());
+        stats.put("mentoringSessions", mentoringService.countAllSessions());
 
-            Map<String, Long> stats = new HashMap<>();
-            stats.put("totalStudents", totalStudents);
-            stats.put("totalInstructors", totalInstructors);
-            stats.put("totalCourses", totalCourses);
-            stats.put("pendingCourses", pendingCourses);
+        // Adding student counts by user type
+        long studentTypeCount = studentService.countStudentTypeUsers();
+        long professionalTypeCount = studentService.countProfessionalTypeUsers();
+        long placementTypeCount = studentService.countPlacementTypeUsers();
 
-            return ResponseEntity.ok(stats);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error fetching stats: " + e.getMessage());
-        }
+        stats.put("studentTypeUsers", studentTypeCount);
+        stats.put("professionalTypeUsers", professionalTypeCount);
+        stats.put("placementTypeUsers", placementTypeCount);
+
+        System.out.println("Stats being returned: " + stats);
+
+        return ResponseEntity.ok(stats);
     }
 
     @GetMapping("/students")
@@ -289,5 +307,17 @@ public class AdminController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error rejecting course: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/mentoring-sessions")
+    public ResponseEntity<List<MentoringSessionDTO>> getAllMentoringSessions() {
+        List<MentoringSessionDTO> sessions = mentoringService.getAllMentoringSessions();
+        return ResponseEntity.ok(sessions);
+    }
+
+    @GetMapping("/courses")
+    public ResponseEntity<List<CourseDTO>> getAllCourses() {
+        List<CourseDTO> courses = courseService.getAllCoursesForAdmin();
+        return ResponseEntity.ok(courses);
     }
 }
