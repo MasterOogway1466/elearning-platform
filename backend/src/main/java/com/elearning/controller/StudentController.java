@@ -5,6 +5,8 @@ import com.elearning.dto.EnrollmentRequest;
 import com.elearning.dto.MessageResponse;
 import com.elearning.dto.NoteRequest;
 import com.elearning.dto.NoteResponse;
+import com.elearning.dto.MentoringSessionRequest;
+import com.elearning.dto.MentoringSessionResponse;
 import com.elearning.model.Course;
 import com.elearning.model.CourseType;
 import com.elearning.model.Enrollment;
@@ -12,14 +14,18 @@ import com.elearning.model.Note;
 import com.elearning.model.User;
 import com.elearning.model.UserType;
 import com.elearning.model.ChapterDetail;
+import com.elearning.model.MentoringSession;
+import com.elearning.model.MentoringSessionStatus;
 import com.elearning.dto.ChapterDetailResponse;
 import com.elearning.repository.CourseRepository;
 import com.elearning.repository.EnrollmentRepository;
 import com.elearning.repository.NoteRepository;
 import com.elearning.repository.UserRepository;
 import com.elearning.repository.ChapterDetailRepository;
+import com.elearning.repository.MentoringSessionRepository;
 import com.elearning.security.services.UserDetailsImpl;
 import com.elearning.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -57,6 +63,9 @@ public class StudentController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private MentoringSessionRepository mentoringSessionRepository;
 
     @GetMapping("/dashboard")
     public ResponseEntity<?> getStudentDashboard() {
@@ -657,5 +666,103 @@ public class StudentController {
                 detail.getUpdatedAt());
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/mentoring-session/request")
+    public ResponseEntity<?> requestMentoringSession(
+            @Valid @RequestBody MentoringSessionRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Student not found");
+        }
+
+        User student = userOpt.get();
+        Long courseId = request.getCourseId();
+
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        Course course = courseOpt.get();
+        User instructor = course.getInstructor();
+
+        // Check if student is enrolled in this course
+        if (!enrollmentRepository.existsByStudentAndCourse(student, course)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("You are not enrolled in this course"));
+        }
+
+        // Create new mentoring session
+        MentoringSession session = new MentoringSession();
+        session.setStudent(student);
+        session.setInstructor(instructor);
+        session.setCourse(course);
+        session.setTopic(request.getTopic());
+        session.setDescription(request.getDescription());
+        session.setStatus(MentoringSessionStatus.PENDING);
+
+        mentoringSessionRepository.save(session);
+
+        MentoringSessionResponse response = new MentoringSessionResponse(
+                session.getId(),
+                student.getId(),
+                student.getFullName(),
+                student.getEmail(),
+                instructor.getId(),
+                instructor.getFullName(),
+                course.getId(),
+                course.getTitle(),
+                session.getStatus(),
+                session.getTopic(),
+                session.getDescription(),
+                session.getRequestDate(),
+                session.getSessionDate(),
+                session.getNotes());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/mentoring-sessions")
+    public ResponseEntity<?> getStudentMentoringSessions(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Student not found");
+        }
+
+        User student = userOpt.get();
+        List<MentoringSession> sessions = mentoringSessionRepository.findByStudent(student);
+
+        List<MentoringSessionResponse> responses = sessions.stream()
+                .map(session -> new MentoringSessionResponse(
+                        session.getId(),
+                        session.getStudent().getId(),
+                        session.getStudent().getFullName(),
+                        session.getStudent().getEmail(),
+                        session.getInstructor().getId(),
+                        session.getInstructor().getFullName(),
+                        session.getCourse().getId(),
+                        session.getCourse().getTitle(),
+                        session.getStatus(),
+                        session.getTopic(),
+                        session.getDescription(),
+                        session.getRequestDate(),
+                        session.getSessionDate(),
+                        session.getNotes()))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(responses);
     }
 }

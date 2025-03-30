@@ -7,6 +7,7 @@ import CourseList from '../components/course/CourseList';
 import EnrolledStudents from '../components/course/EnrolledStudents';
 import CourseDetails from '../components/course/CourseDetails';
 import PendingReviewCourses from '../components/instructor/PendingReviewCourses';
+import MentoringSessions from '../components/instructor/MentoringSessions';
 import './Dashboard.css';
 import { Link } from 'react-router-dom';
 
@@ -14,7 +15,8 @@ const InstructorDashboard = () => {
   const [myCourses, setMyCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('myCourses');
+  const [activeSection, setActiveSection] = useState('courses');
+  const [activeTab, setActiveTab] = useState('myCourses'); // Tab within courses section
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courseToEdit, setCourseToEdit] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -234,81 +236,192 @@ const InstructorDashboard = () => {
     setCourseToDelete(null);
   };
 
+  // Get display title for the current section/tab
+  const getSectionTitle = () => {
+    if (activeSection === 'courses') {
+      switch (activeTab) {
+        case 'myCourses':
+          return 'My Courses';
+        case 'discover':
+          return 'All Courses';
+        case 'createCourse':
+          return 'Create Course';
+        case 'editCourse':
+          return 'Edit Course';
+        case 'students':
+          return `Students - ${myCourses.find(c => c.id === selectedCourse)?.title || ''}`;
+        case 'underReview':
+          return 'Courses Under Review';
+        case 'rejected':
+          return 'Rejected Courses';
+        default:
+          return 'My Courses';
+      }
+    } else if (activeSection === 'mentoring') {
+      return 'Mentoring Sessions';
+    } else if (activeSection === 'analytics') {
+      return 'Analytics';
+    }
+    return 'Dashboard';
+  };
+
   return (
     <div className="main-content">
       <div className="dashboard-container">
         <h1>Instructor Dashboard</h1>
         
-        <div className="dashboard-tabs">
-          <button
-            className={`tab-button ${activeTab === 'myCourses' ? 'active' : ''}`}
+        {/* New Dashboard Layout */}
+        <div className="dashboard-layout">
+          {/* Left Sidebar Navigation */}
+          <div className="dashboard-sidebar">
+            <div className="sidebar-header">
+              <h3>Navigation</h3>
+            </div>
+            <ul className="nav-menu">
+              <li className="nav-item">
+                <div 
+                  className={`nav-link ${activeSection === 'courses' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveSection('courses');
+                    if (!['myCourses', 'discover', 'createCourse', 'underReview', 'rejected'].includes(activeTab)) {
+                      setActiveTab('myCourses');
+                    }
+                  }}
+                >
+                  <i className="bi bi-book"></i>
+                  Courses
+                </div>
+              </li>
+              <li className="nav-item">
+                <div 
+                  className={`nav-link ${activeSection === 'mentoring' ? 'active' : ''}`}
+                  onClick={() => setActiveSection('mentoring')}
+                >
+                  <i className="bi bi-person-video3"></i>
+                  Mentoring Sessions
+                </div>
+              </li>
+              <li className="nav-item">
+                <div 
+                  className={`nav-link ${activeSection === 'analytics' ? 'active' : ''}`}
+                  onClick={() => setActiveSection('analytics')}
+                >
+                  <i className="bi bi-graph-up"></i>
+                  Analytics
+                </div>
+              </li>
+            </ul>
+
+            {activeSection === 'courses' && (
+              <div className="sidebar-section">
+                <div className="sidebar-section-title">Course Options</div>
+                <ul className="nav-menu">
+                  <li className="nav-item">
+                    <div 
+                      className={`nav-link ${activeTab === 'myCourses' ? 'active' : ''}`}
             onClick={() => setActiveTab('myCourses')}
           >
+                      <i className="bi bi-collection"></i>
             My Courses
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'discover' ? 'active' : ''}`}
+                    </div>
+                  </li>
+                  <li className="nav-item">
+                    <div 
+                      className={`nav-link ${activeTab === 'discover' ? 'active' : ''}`}
             onClick={() => setActiveTab('discover')}
           >
+                      <i className="bi bi-compass"></i>
             All Courses
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'createCourse' ? 'active' : ''}`}
+                    </div>
+                  </li>
+                  <li className="nav-item">
+                    <div 
+                      className={`nav-link ${activeTab === 'createCourse' ? 'active' : ''}`}
             onClick={() => setActiveTab('createCourse')}
           >
+                      <i className="bi bi-plus-circle"></i>
             Create Course
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'underReview' ? 'active' : ''}`}
+                    </div>
+                  </li>
+                  <li className="nav-item">
+                    <div 
+                      className={`nav-link ${activeTab === 'underReview' ? 'active' : ''}`}
             onClick={() => setActiveTab('underReview')}
           >
+                      <i className="bi bi-clock-history"></i>
             Under Review
-          </button>
-          {courseToEdit && (
+                    </div>
+                  </li>
+                  <li className="nav-item">
+                    <div 
+                      className={`nav-link ${activeTab === 'rejected' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('rejected')}
+                    >
+                      <i className="bi bi-x-circle"></i>
+                      Rejected Courses
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
+          
+          {/* Right Content Area */}
+          <div className="dashboard-content">
+            <div className="content-header">
+              <h2>{getSectionTitle()}</h2>
+              
+              {/* Section-specific actions
+              {activeSection === 'courses' && activeTab === 'myCourses' && (
             <button
-              className={`tab-button ${activeTab === 'editCourse' ? 'active' : ''}`}
-              onClick={() => setActiveTab('editCourse')}
+                  className="btn btn-primary" 
+                  onClick={() => setActiveTab('createCourse')}
             >
-              Edit Course
+                  <i className="bi bi-plus-circle me-1"></i>
+                  Create New Course
+            </button>
+          )} */}
+              
+              {activeSection === 'courses' && activeTab === 'editCourse' && (
+            <button
+                  className="btn btn-secondary"
+                  onClick={handleCancelEdit}
+            >
+                  <i className="bi bi-arrow-left me-2"></i>
+                  Back to Courses
             </button>
           )}
-          {selectedCourse && (
-            <button
-              className={`tab-button ${activeTab === 'students' ? 'active' : ''}`}
-              onClick={() => setActiveTab('students')}
-            >
-              Enrolled Students
-            </button>
-          )}
+              
+              {activeSection === 'courses' && activeTab === 'students' && (
           <button
-            className={`tab-button ${activeTab === 'rejected' ? 'active' : ''}`}
-            onClick={() => setActiveTab('rejected')}
+                  className="btn btn-secondary"
+                  onClick={() => setActiveTab('myCourses')}
           >
-            Rejected Courses
+                  <i className="bi bi-arrow-left me-2"></i>
+                  Back to Courses
           </button>
-          <button
-            className={`tab-button ${activeTab === 'analytics' ? 'active' : ''}`}
-            onClick={() => setActiveTab('analytics')}
-          >
-            Analytics
-          </button>
+              )}
         </div>
         
-        <div className="dashboard-content">
+            <div className="content-body">
+              {/* Courses Section */}
+              {activeSection === 'courses' && (
+                <>
+                  {/* My Courses Tab */}
           {activeTab === 'myCourses' && (
             <div className="my-courses-section">
-              <div className="section-header">
-                <h2>My Courses</h2>
-                <div className="search-filter-controls">
+                      <div className="search-filter-controls mb-4">
                   <input
                     type="text"
                     placeholder="Search courses"
                     value={searchTerm}
                     onChange={handleSearchChange}
+                          className="form-control"
                   />
                   <select
                     value={selectedCategory}
                     onChange={handleCategoryChange}
+                          className="form-select"
                   >
                     <option value="">All Categories</option>
                     {categories.map((category, index) => (
@@ -324,13 +437,12 @@ const InstructorDashboard = () => {
                     <i className="bi bi-x-circle me-2"></i>
                     Reset
                   </button>
-                </div>
               </div>
 
               {loading ? (
-                <div className="loading-state">
-                  <i className="bi bi-arrow-repeat"></i>
-                  <p>Loading your courses...</p>
+                        <div className="loading-spinner">
+                          <i className="bi bi-arrow-repeat spinner-icon"></i>
+                          <p>Loading courses...</p>
                 </div>
               ) : error ? (
                 <div className="alert alert-danger">
@@ -342,6 +454,13 @@ const InstructorDashboard = () => {
                   <i className="bi bi-book me-2"></i>
                   <h3>No Courses Created</h3>
                   <p>Create your first course to get started!</p>
+                          <button 
+                            className="btn btn-primary mt-3" 
+                            onClick={() => setActiveTab('createCourse')}
+                          >
+                            <i className="bi bi-plus-circle me-2"></i>
+                            Create Course
+                          </button>
                 </div>
               ) : filteredMyCourses.length === 0 ? (
                 <div className="courses-empty">
@@ -418,20 +537,21 @@ const InstructorDashboard = () => {
             </div>
           )}
           
+                  {/* All Courses Tab */}
           {activeTab === 'discover' && (
             <div className="discover-section">
-              <div className="section-header">
-                <h2>All Available Courses</h2>
-                <div className="search-filter-controls">
+                      <div className="search-filter-controls mb-4">
                   <input
                     type="text"
                     placeholder="Search courses"
                     value={searchTerm}
                     onChange={handleSearchChange}
+                          className="form-control"
                   />
                   <select
                     value={selectedCategory}
                     onChange={handleCategoryChange}
+                          className="form-select"
                   >
                     <option value="">All Categories</option>
                     {categories.map((category, index) => (
@@ -447,13 +567,12 @@ const InstructorDashboard = () => {
                     <i className="bi bi-x-circle me-2"></i>
                     Reset
                   </button>
-                </div>
               </div>
               
               {loading ? (
-                <div className="loading-state">
-                  <i className="bi bi-arrow-repeat"></i>
-                  <p>Loading available courses...</p>
+                        <div className="loading-spinner">
+                          <i className="bi bi-arrow-repeat spinner-icon"></i>
+                          <p>Loading courses...</p>
                 </div>
               ) : error ? (
                 <div className="alert alert-danger">
@@ -539,29 +658,18 @@ const InstructorDashboard = () => {
             </div>
           )}
           
+                  {/* Create Course Tab */}
           {activeTab === 'createCourse' && (
             <div className="create-course-section">
-              <div className="section-header">
-                <h2>Create New Course</h2>
-              </div>
               <div className="feature-card">
                 <CreateCourse onSuccess={handleCourseCreated} />
               </div>
             </div>
           )}
 
+                  {/* Edit Course Tab */}
           {activeTab === 'editCourse' && courseToEdit && (
             <div className="edit-course-section">
-              <div className="section-header">
-                <h2>Edit Course</h2>
-                <button 
-                  className="btn btn-secondary"
-                  onClick={handleCancelEdit}
-                >
-                  <i className="bi bi-arrow-left me-2"></i>
-                  Back to Courses
-                </button>
-              </div>
               <div className="feature-card">
                 <EditCourse 
                   course={courseToEdit} 
@@ -572,29 +680,27 @@ const InstructorDashboard = () => {
             </div>
           )}
           
+                  {/* Enrolled Students Tab */}
           {activeTab === 'students' && selectedCourse && (
             <div className="students-section">
-              <div className="section-header">
-                <h2>Students Enrolled in {myCourses.find(c => c.id === selectedCourse)?.title}</h2>
-                <button 
-                  className="btn btn-secondary"
-                  onClick={() => setActiveTab('myCourses')}
-                >
-                  <i className="bi bi-arrow-left me-2"></i>
-                  Back to Courses
-                </button>
-              </div>
               <div className="feature-card">
                 <EnrolledStudents courseId={selectedCourse} />
               </div>
             </div>
           )}
           
+                  {/* Under Review Tab */}
+                  {activeTab === 'underReview' && (
+                    <div className="pending-review-section">
+                      <div className="feature-card">
+                        <PendingReviewCourses />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Rejected Courses Tab */}
           {activeTab === 'rejected' && (
             <div className="rejected-courses-section">
-              <div className="section-header">
-                <h2>Rejected Courses</h2>
-              </div>
               {error && (
                 <div className="alert alert-danger">
                   <i className="bi bi-exclamation-circle-fill me-2"></i>
@@ -672,24 +778,20 @@ const InstructorDashboard = () => {
                 </div>
               )}
             </div>
-          )}
-          
-          {activeTab === 'underReview' && (
-            <div className="pending-review-section">
-              <div className="section-header">
-                <h2>Courses Under Review</h2>
-              </div>
-              <div className="feature-card">
-                <PendingReviewCourses />
-              </div>
+                  )}
+                </>
+              )}
+              
+              {/* Mentoring Sessions Section */}
+              {activeSection === 'mentoring' && (
+                <div className="mentoring-sessions-section">
+                  <MentoringSessions />
             </div>
           )}
           
-          {activeTab === 'analytics' && (
+              {/* Analytics Section */}
+              {activeSection === 'analytics' && (
             <div className="analytics-section">
-              <div className="section-header">
-                <h2>Course Analytics</h2>
-              </div>
               <div className="courses-empty">
                 <i className="bi bi-graph-up me-2"></i>
                 <h3>Analytics Coming Soon</h3>
@@ -697,9 +799,12 @@ const InstructorDashboard = () => {
               </div>
             </div>
           )}
+            </div>
+          </div>
         </div>
       </div>
       
+      {/* Modals */}
       {courseToView && (
         <CourseDetails 
           courseId={courseToView}

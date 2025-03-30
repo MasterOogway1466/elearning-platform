@@ -5,7 +5,7 @@ import './CourseList.css';
 import CourseDetails from './CourseDetails';
 import { useToast } from '../../context/ToastContext';
 
-const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledView = false, enrolledCourseIds: externalEnrolledCourseIds }) => {
+const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledView = false, enrolledCourseIds: externalEnrolledCourseIds, isInstructorCourse = null }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -13,7 +13,7 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
   const [categories, setCategories] = useState([]);
   const [selectedCourseId, setSelectedCourseId] = useState(null);
   const [availableCourses, setAvailableCourses] = useState([]);
-  const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState(externalEnrolledCourseIds || []);
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -137,10 +137,16 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
   }
 
   return (
-    <div className="courses-container">
+    <div className="course-list-container">
       <div className="courses-grid">
         {filteredCourses.map(course => (
-          <div className="course-card" key={course.id}>
+          <div className={`course-card ${course.status === 'PENDING' ? 'pending' : ''}`} key={course.id}>
+            {isInstructorCourse && typeof isInstructorCourse === 'function' && isInstructorCourse(course.id) && (
+              <div className="course-badge">
+                <i className="bi bi-check-circle-fill me-1"></i>
+                Your Course
+              </div>
+            )}
             <div className="course-image">
               {course.imageUrl ? (
                 <img src={course.imageUrl} alt={course.title} />
@@ -152,13 +158,15 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
             </div>
             <div className="course-details">
               <h3>{course.title}</h3>
-              <div className="course-category">{course.category}</div>
-              <div className="course-type">
-                {course.courseType === 'STUDENT' ? 'Student Course' :
-                 course.courseType === 'PROFESSIONAL' ? 'Professional Course' :
-                 'Placement Training Course'}
+              <div className="course-meta">
+                <div className="course-category">{course.category}</div>
+                {course.instructorName && (
+                  <div className="course-instructor">
+                    <i className="bi bi-person-circle me-1"></i>
+                    {course.instructorName}
+                  </div>
+                )}
               </div>
-              <div className="course-instructor">By {course.instructorName}</div>
               <p className="course-description">
                 {course.description.length > 100
                   ? `${course.description.substring(0, 100)}...`
@@ -169,52 +177,52 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
                   <>
                     <button 
                       onClick={() => handleViewCourse(course.id)} 
-                      className="btn btn-outline-primary"
+                      className="btn btn-outline-primary btn-sm"
                     >
-                      <i className="bi bi-eye me-2"></i>
-                      View Course
+                      <i className="bi bi-eye me-1"></i>
+                      Details
                     </button>
-                    <Link to={`/student/course/${course.id}`} className="btn btn-success">
-                      <i className="bi bi-book me-2"></i>
+                    <Link to={`/student/course/${course.id}`} className="btn btn-success btn-sm">
+                      <i className="bi bi-book me-1"></i>
                       Continue
                     </Link>
                     <button
                       onClick={() => handleUnenroll(course.id)}
-                      className="btn btn-danger"
+                      className="btn btn-outline-danger btn-sm"
                     >
-                      <i className="bi bi-x-circle me-2"></i>
+                      <i className="bi bi-x-circle me-1"></i>
                       Unenroll
                     </button>
                   </>
-                ) : (
+                ) :
                   <>
                     <button 
                       onClick={() => handleViewCourse(course.id)} 
-                      className="btn btn-primary"
+                      className="btn btn-primary btn-sm"
                     >
-                      <i className="bi bi-eye me-2"></i>
+                      <i className="bi bi-eye me-1"></i>
                       View Course
                     </button>
                     {showEnrollButton && !isEnrolled(course.id) && (
                       <button
                         onClick={() => onEnroll(course.id)}
-                        className="btn btn-success"
+                        className="btn btn-success btn-sm"
                       >
-                        <i className="bi bi-check-circle me-2"></i>
+                        <i className="bi bi-check-circle me-1"></i>
                         Enroll Now
                       </button>
                     )}
                     {showEnrollButton && isEnrolled(course.id) && (
                       <button
-                        className="btn btn-secondary"
+                        className="btn btn-secondary btn-sm"
                         disabled
                       >
-                        <i className="bi bi-check-circle-fill me-2"></i>
+                        <i className="bi bi-check-circle-fill me-1"></i>
                         Enrolled
                       </button>
                     )}
                   </>
-                )}
+                }
               </div>
             </div>
           </div>
@@ -233,7 +241,7 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
 
 // Create a wrapped version of CourseList that handles the onEnroll function
 // and shows Toast notifications
-export const CourseListWithEnrollment = ({ courses, showEnrollButton = true }) => {
+export const CourseListWithEnrollment = ({ courses, showEnrollButton = true, isInstructorCourse = null }) => {
   const { addToast } = useToast();
   const [localEnrolledCourseIds, setLocalEnrolledCourseIds] = useState([]);
   
@@ -287,6 +295,7 @@ export const CourseListWithEnrollment = ({ courses, showEnrollButton = true }) =
       onEnroll={handleEnroll} 
       showEnrollButton={showEnrollButton} 
       enrolledCourseIds={localEnrolledCourseIds}
+      isInstructorCourse={isInstructorCourse}
     />
   );
 };

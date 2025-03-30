@@ -5,13 +5,15 @@ import CourseList, { CourseListWithEnrollment } from '../components/course/Cours
 import './Dashboard.css';
 import { Link } from 'react-router-dom';
 import CourseNotes from '../components/student/CourseNotes';
+import mentoringService from '../services/mentoring.service';
 
 const StudentDashboard = () => {
   const [courses, setCourses] = useState([]);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('myLearning');
+  const [activeSection, setActiveSection] = useState('myLearning');
+  const [activeTab, setActiveTab] = useState('enrolled'); // Tab within the section
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [categories, setCategories] = useState([]);
@@ -21,6 +23,9 @@ const StudentDashboard = () => {
   const [updateError, setUpdateError] = useState('');
   const [updateSuccess, setUpdateSuccess] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [mentoringSessions, setMentoringSessions] = useState([]);
+  const [loadingMentoring, setLoadingMentoring] = useState(false);
+  const [mentoringError, setMentoringError] = useState('');
 
   const fetchUserType = async () => {
     try {
@@ -110,6 +115,22 @@ const StudentDashboard = () => {
     return () => window.removeEventListener('keydown', handleEscKey);
   }, [showUserTypeModal]);
 
+  const fetchMentoringSessions = async () => {
+    if (activeSection === 'mentoring' && !mentoringSessions.length) {
+      try {
+        setLoadingMentoring(true);
+        setMentoringError('');
+        const response = await mentoringService.getStudentMentoringSessions();
+        setMentoringSessions(response.data);
+      } catch (err) {
+        console.error('Failed to load mentoring sessions:', err);
+        setMentoringError('Failed to load your mentoring sessions. Please try again later.');
+      } finally {
+        setLoadingMentoring(false);
+      }
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -128,6 +149,13 @@ const StudentDashboard = () => {
     // Cleanup interval on component unmount
     return () => clearInterval(refreshInterval);
   }, []);
+
+  useEffect(() => {
+    // Fetch data based on the active section
+    if (activeSection === 'mentoring') {
+      fetchMentoringSessions();
+    }
+  }, [activeSection]);
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
@@ -160,6 +188,22 @@ const StudentDashboard = () => {
   // Apply filters to both enrolled and available courses
   const filteredEnrolledCourses = filterCourses(enrolledCourses);
   const filteredAllCourses = filterCourses(courses);
+
+  // Get display title for the current section
+  const getSectionTitle = () => {
+    switch (activeSection) {
+      case 'myLearning':
+        return 'My Learning';
+      case 'notes':
+        return 'My Notes';
+      case 'mentoring':
+        return 'Mentoring Sessions';
+      case 'certificates':
+        return 'My Certificates';
+      default:
+        return 'My Learning';
+    }
+  };
 
   return (
     <div className="main-content">
@@ -342,52 +386,99 @@ const StudentDashboard = () => {
           </>
         )}
         
-        <div className="dashboard-tabs">
+        {/* New Dashboard Layout */}
+        <div className="dashboard-layout">
+          {/* Left Sidebar Navigation */}
+          <div className="dashboard-sidebar">
+            <div className="sidebar-header">
+              <h3>Navigation</h3>
+            </div>
+            <ul className="nav-menu">
+              <li className="nav-item">
+                <div 
+                  className={`nav-link ${activeSection === 'myLearning' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveSection('myLearning');
+                    setActiveTab('enrolled');
+                  }}
+                >
+                  <i className="bi bi-book"></i>
+                  My Learning
+                </div>
+              </li>
+              <li className="nav-item">
+                <div 
+                  className={`nav-link ${activeSection === 'notes' ? 'active' : ''}`}
+                  onClick={() => setActiveSection('notes')}
+                >
+                  <i className="bi bi-journal-text"></i>
+                  Notes
+                </div>
+              </li>
+              <li className="nav-item">
+                <div 
+                  className={`nav-link ${activeSection === 'mentoring' ? 'active' : ''}`}
+                  onClick={() => setActiveSection('mentoring')}
+                >
+                  <i className="bi bi-person-video3"></i>
+                  Mentoring Sessions
+                </div>
+              </li>
+              <li className="nav-item">
+                <div 
+                  className={`nav-link ${activeSection === 'certificates' ? 'active' : ''}`}
+                  onClick={() => setActiveSection('certificates')}
+                >
+                  <i className="bi bi-award"></i>
+                  Certificates
+                </div>
+              </li>
+            </ul>
+          </div>
+          
+          {/* Right Content Area */}
+          <div className="dashboard-content">
+            <div className="content-header">
+              <h2>{getSectionTitle()}</h2>
+              
+              {/* Section-specific actions */}
+              {activeSection === 'myLearning' && (
+                <div className="section-actions">
           <button
-            className={`tab-button ${activeTab === 'myLearning' ? 'active' : ''}`}
-            onClick={() => setActiveTab('myLearning')}
+                    className={`btn ${activeTab === 'enrolled' ? 'btn-primary' : 'btn-outline-primary'} me-2`}
+                    onClick={() => setActiveTab('enrolled')}
           >
-            <i className="bi bi-book me-1"></i>
-            My Learning
+                    <i className="bi bi-collection-play me-1"></i>
+                    Enrolled Courses
           </button>
           <button
-            className={`tab-button ${activeTab === 'discover' ? 'active' : ''}`}
+                    className={`btn ${activeTab === 'discover' ? 'btn-primary' : 'btn-outline-primary'}`}
             onClick={() => setActiveTab('discover')}
           >
             <i className="bi bi-compass me-1"></i>
             Discover Courses
           </button>
-          <button
-            className={`tab-button ${activeTab === 'notes' ? 'active' : ''}`}
-            onClick={() => setActiveTab('notes')}
-          >
-            <i className="bi bi-journal-text me-1"></i>
-            Notes
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'certificates' ? 'active' : ''}`}
-            onClick={() => setActiveTab('certificates')}
-          >
-            <i className="bi bi-award me-1"></i>
-            Certificates
-          </button>
+                </div>
+              )}
         </div>
         
-        <div className="dashboard-content">
-          {activeTab === 'myLearning' && (
+            <div className="content-body">
+              {/* My Learning Section */}
+              {activeSection === 'myLearning' && (
             <div className="my-learning-section">
-              <div className="section-header">
-                <h2>My Learning</h2>
-                <div className="search-filter-controls">
+                  {/* Search and filter controls - keep if in My Learning section */}
+                  <div className="search-filter-controls mb-4">
                   <input
                     type="text"
                     placeholder="Search courses"
                     value={searchTerm}
                     onChange={handleSearchChange}
+                      className="form-control"
                   />
                   <select
                     value={selectedCategory}
                     onChange={handleCategoryChange}
+                      className="form-select"
                   >
                     <option value="">All Categories</option>
                     {categories.map((category, index) => (
@@ -403,9 +494,11 @@ const StudentDashboard = () => {
                     <i className="bi bi-x-circle me-2"></i>
                     Reset
                   </button>
-                </div>
               </div>
               
+                  {/* Enrolled Courses Tab */}
+                  {activeTab === 'enrolled' && (
+                    <div className="enrolled-courses">
               {loading ? (
                 <div className="loading-state">
                   <i className="bi bi-arrow-repeat"></i>
@@ -434,60 +527,18 @@ const StudentDashboard = () => {
             </div>
           )}
           
+                  {/* Discover Courses Tab */}
           {activeTab === 'discover' && (
-            <div className="discover-section">
-              <div className="section-header">
-                <div>
-                  <h2>Available Courses</h2>
-                  <p className="text-muted">
-                    Showing courses suitable for your user type: {userType === 'STUDENT' ? 'Student' :
-                                                             userType === 'PROFESSIONAL' ? 'Professional' :
-                                                             'Placement Training'}
-                  </p>
-                </div>
-                <div className="search-filter-controls">
-                  <input
-                    type="text"
-                    placeholder="Search courses"
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                  />
-                  <select
-                    value={selectedCategory}
-                    onChange={handleCategoryChange}
-                  >
-                    <option value="">All Categories</option>
-                    {categories.map((category, index) => (
-                      <option key={index} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                  <button 
-                    className="btn btn-secondary"
-                    onClick={resetFilters}
-                  >
-                    <i className="bi bi-x-circle me-2"></i>
-                    Reset
-                  </button>
-                </div>
-              </div>
-              
+                    <div className="discover-courses">
               {loading ? (
                 <div className="loading-state">
                   <i className="bi bi-arrow-repeat"></i>
-                  <p>Loading available courses...</p>
+                          <p>Loading courses...</p>
                 </div>
               ) : error ? (
                 <div className="alert alert-danger">
                   <i className="bi bi-exclamation-circle-fill me-2"></i>
                   {error}
-                </div>
-              ) : courses.length === 0 ? (
-                <div className="courses-empty">
-                  <i className="bi bi-book me-2"></i>
-                  <h3>No Courses Available</h3>
-                  <p>Check back later for new courses!</p>
                 </div>
               ) : filteredAllCourses.length === 0 ? (
                 <div className="courses-empty">
@@ -496,15 +547,24 @@ const StudentDashboard = () => {
                   <p>Try adjusting your search criteria</p>
                 </div>
               ) : (
-                <CourseListWithEnrollment courses={filteredAllCourses} />
+                        <CourseListWithEnrollment 
+                          courses={filteredAllCourses} 
+                          enrolledCourseIds={enrolledCourses.map(course => course.id)}
+                          onSuccess={() => {
+                            fetchEnrolledCourses();
+                            setActiveTab('enrolled');
+                          }}
+                        />
+                      )}
+                    </div>
               )}
             </div>
           )}
           
-          {activeTab === 'notes' && (
+              {/* Notes Section */}
+              {activeSection === 'notes' && (
             <div className="notes-section">
               <div className="notes-overview">
-                <h2>My Course Notes</h2>
                 <p>Access your notes for each course. Click on a course to view or edit notes.</p>
               </div>
               
@@ -518,7 +578,10 @@ const StudentDashboard = () => {
                   <p>You don't have any courses with notes yet. Enroll in courses to start taking notes!</p>
                   <button 
                     className="btn btn-primary mt-3" 
-                    onClick={() => setActiveTab('discover')}
+                        onClick={() => {
+                          setActiveSection('myLearning');
+                          setActiveTab('discover');
+                        }}
                   >
                     Browse Courses
                   </button>
@@ -533,10 +596,76 @@ const StudentDashboard = () => {
             </div>
           )}
           
-          {activeTab === 'certificates' && (
+              {/* Mentoring Sessions Section */}
+              {activeSection === 'mentoring' && (
+                <div className="mentoring-sessions-section">
+                  <p>View and manage your one-on-one mentoring session requests.</p>
+                  
+                  {loadingMentoring ? (
+                    <div className="loading-message">Loading your mentoring sessions...</div>
+                  ) : mentoringError ? (
+                    <div className="alert alert-danger">{mentoringError}</div>
+                  ) : mentoringSessions.length === 0 ? (
+                    <div className="no-sessions-message">
+                      <i className="bi bi-person-video3"></i>
+                      <p>You haven't requested any mentoring sessions yet.</p>
+                      <p>Request a mentoring session from your enrolled course pages!</p>
+                    </div>
+                  ) : (
+                    <div className="sessions-list">
+                      <div className="table-responsive">
+                        <table className="table table-hover align-middle">
+                          <thead className="table-light">
+                            <tr>
+                              <th style={{width: '25%'}}>Course</th>
+                              <th style={{width: '20%'}}>Instructor</th>
+                              <th style={{width: '15%'}}>Topic</th>
+                              <th style={{width: '15%'}}>Status</th>
+                              <th style={{width: '15%'}}>Requested On</th>
+                              <th style={{width: '10%'}}>Session Date</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {mentoringSessions.map(session => (
+                              <tr key={session.id}>
+                                <td>{session.courseTitle}</td>
+                                <td>{session.instructorName}</td>
+                                <td>{session.topic}</td>
+                                <td>
+                                  <span className={`badge ${
+                                    session.status === 'PENDING' ? 'bg-warning text-dark' :
+                                    session.status === 'APPROVED' ? 'bg-success' :
+                                    session.status === 'REJECTED' ? 'bg-danger' :
+                                    session.status === 'COMPLETED' ? 'bg-info' :
+                                    'bg-secondary'
+                                  }`}>
+                                    {session.status}
+                                  </span>
+                                </td>
+                                <td>
+                                  {new Date(session.requestDate).toLocaleDateString()}
+                                </td>
+                                <td>
+                                  {session.sessionDate ? 
+                                    new Date(session.sessionDate).toLocaleDateString() : 
+                                    <span className="text-muted">Not set</span>
+                                  }
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Certificates Section */}
+              {activeSection === 'certificates' && (
             <div className="certificates-section">
               <div className="section-header">
-                <h2>My Certificates</h2>
+                    <p>View and download your earned certificates.</p>
               </div>
               <div className="courses-empty">
                 <i className="bi bi-award me-2"></i>
@@ -545,6 +674,8 @@ const StudentDashboard = () => {
               </div>
             </div>
           )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

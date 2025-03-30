@@ -290,6 +290,24 @@ const ChapterView = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Quiz Section */}
+                  <div className="chapter-section quiz-section">
+                    <h4><i className="bi bi-question-circle me-2"></i>Chapter Quiz</h4>
+                    <div className="quiz-content">
+                      <div className="quiz-info">
+                        <p><i className="bi bi-info-circle me-2"></i>Test your knowledge with this chapter's quiz</p>
+                        <div className="quiz-stats">
+                          <span><i className="bi bi-clock me-1"></i>Estimated time: 10 minutes</span>
+                          <span><i className="bi bi-question-circle me-1"></i>Questions: 5</span>
+                        </div>
+                      </div>
+                      <button className="btn btn-primary quiz-start-btn" disabled>
+                        <i className="bi bi-play-circle me-2"></i>
+                        Start Quiz
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ) : (
               <div className="chapter-info-section">

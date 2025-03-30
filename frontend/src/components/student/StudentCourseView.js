@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import authHeader from '../../services/auth-header';
+import mentoringService from '../../services/mentoring.service';
 import './StudentCourseView.css';
 
 const StudentCourseView = () => {
@@ -11,6 +12,12 @@ const StudentCourseView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [showMentoringModal, setShowMentoringModal] = useState(false);
+  const [mentoringTopic, setMentoringTopic] = useState('');
+  const [mentoringDescription, setMentoringDescription] = useState('');
+  const [submittingRequest, setSubmittingRequest] = useState(false);
+  const [requestSuccess, setRequestSuccess] = useState(false);
+  const [requestError, setRequestError] = useState('');
 
   useEffect(() => {
     const fetchCourseDetails = async () => {
@@ -44,6 +51,56 @@ const StudentCourseView = () => {
 
   const handleViewNotes = () => {
     navigate(`/student/notes/${courseId}`);
+  };
+
+  const handleMentoringRequest = async (e) => {
+    e.preventDefault();
+    
+    if (!mentoringTopic.trim() || !mentoringDescription.trim()) {
+      setRequestError('Please fill out all required fields.');
+      return;
+    }
+    
+    try {
+      setSubmittingRequest(true);
+      setRequestError('');
+      
+      await mentoringService.requestMentoringSession(
+        courseId,
+        mentoringTopic,
+        mentoringDescription
+      );
+      
+      setRequestSuccess(true);
+      
+      // Clear form after 2 seconds and close modal
+      setTimeout(() => {
+        setShowMentoringModal(false);
+        setMentoringTopic('');
+        setMentoringDescription('');
+        setRequestSuccess(false);
+      }, 2000);
+      
+    } catch (err) {
+      console.error('Failed to request mentoring session:', err);
+      setRequestError(err.response?.data?.message || 'Failed to submit request. Please try again.');
+    } finally {
+      setSubmittingRequest(false);
+    }
+  };
+  
+  const openMentoringModal = () => {
+    setShowMentoringModal(true);
+    setRequestError('');
+    setRequestSuccess(false);
+  };
+  
+  const closeMentoringModal = () => {
+    setShowMentoringModal(false);
+    setMentoringTopic('');
+    setMentoringDescription('');
+    setRequestError('');
+    setRequestSuccess(false);
   };
 
   if (loading) {
@@ -91,14 +148,18 @@ const StudentCourseView = () => {
     <div className="course-view-container">
       <div className="course-view-header">
         <div className="course-header-top">
-          <div className="d-flex gap-2">
-            <button className="btn btn-outline-primary" onClick={handleBackToDashboard}>
+          <div className="action-buttons d-flex">
+            <button className="btn btn-back" onClick={handleBackToDashboard}>
               <i className="bi bi-arrow-left me-2"></i>
               Back to Dashboard
             </button>
-            <button className="btn btn-outline-secondary" onClick={handleViewNotes}>
+            <button className="btn btn-view-notes" onClick={handleViewNotes}>
               <i className="bi bi-journal-text me-2"></i>
               View Notes
+            </button>
+            <button className="btn btn-request-mentoring" onClick={openMentoringModal}>
+              <i className="bi bi-person-video3 me-2"></i>
+              Request Mentoring
             </button>
           </div>
           
@@ -264,6 +325,85 @@ const StudentCourseView = () => {
           </div>
         )}
       </div>
+
+      {showMentoringModal && (
+        <div className="modal-backdrop">
+          <div className="mentoring-modal">
+            <div className="mentoring-modal-header">
+              <h3>Request One-on-One Mentoring Session</h3>
+              <button className="close-button" onClick={closeMentoringModal}>
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div className="mentoring-modal-body">
+              {requestSuccess ? (
+                <div className="alert alert-success">
+                  <i className="bi bi-check-circle me-2"></i>
+                  Your mentoring session request has been submitted successfully!
+                </div>
+              ) : (
+                <form onSubmit={handleMentoringRequest}>
+                  {requestError && (
+                    <div className="alert alert-danger">
+                      <i className="bi bi-exclamation-triangle me-2"></i>
+                      {requestError}
+                    </div>
+                  )}
+                  
+                  <div className="mb-3">
+                    <label htmlFor="mentoringTopic" className="form-label">Topic <span className="text-danger">*</span></label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="mentoringTopic"
+                      value={mentoringTopic}
+                      onChange={(e) => setMentoringTopic(e.target.value)}
+                      placeholder="e.g., Understanding Data Structures, Help with Assignment"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="mb-3">
+                    <label htmlFor="mentoringDescription" className="form-label">Description <span className="text-danger">*</span></label>
+                    <textarea
+                      className="form-control"
+                      id="mentoringDescription"
+                      value={mentoringDescription}
+                      onChange={(e) => setMentoringDescription(e.target.value)}
+                      placeholder="Please describe what you'd like to discuss during the mentoring session..."
+                      rows={5}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="d-flex justify-content-end gap-2 mt-4">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={closeMentoringModal}
+                      disabled={submittingRequest}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={submittingRequest}
+                    >
+                      {submittingRequest ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                          Submitting...
+                        </>
+                      ) : 'Submit Request'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

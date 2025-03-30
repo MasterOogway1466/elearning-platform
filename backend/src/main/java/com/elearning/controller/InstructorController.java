@@ -3,18 +3,22 @@ package com.elearning.controller;
 import com.elearning.dto.CourseRequest;
 import com.elearning.dto.CourseResponse;
 import com.elearning.dto.MessageResponse;
+import com.elearning.dto.MentoringSessionResponse;
+import com.elearning.dto.MentoringSessionUpdateRequest;
 import com.elearning.model.Course;
 import com.elearning.model.CourseStatus;
 import com.elearning.model.CourseType;
 import com.elearning.model.Enrollment;
 import com.elearning.model.User;
 import com.elearning.model.ChapterDetail;
+import com.elearning.model.MentoringSession;
 import com.elearning.dto.ChapterDetailRequest;
 import com.elearning.dto.ChapterDetailResponse;
 import com.elearning.repository.CourseRepository;
 import com.elearning.repository.EnrollmentRepository;
 import com.elearning.repository.UserRepository;
 import com.elearning.repository.ChapterDetailRepository;
+import com.elearning.repository.MentoringSessionRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -48,6 +52,9 @@ public class InstructorController {
 
     @Autowired
     private ChapterDetailRepository chapterDetailRepository;
+
+    @Autowired
+    private MentoringSessionRepository mentoringSessionRepository;
 
     @GetMapping("/dashboard")
     public ResponseEntity<?> getInstructorDashboard() {
@@ -911,5 +918,164 @@ public class InstructorController {
         chapterDetailRepository.delete(chapterDetailOpt.get());
 
         return ResponseEntity.ok(new MessageResponse("Chapter detail deleted successfully"));
+    }
+
+    @GetMapping("/courses/{courseId}/mentoring-sessions")
+    public ResponseEntity<?> getCourseMentoringSessions(
+            @PathVariable Long courseId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        User instructor = userOpt.get();
+
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        Course course = courseOpt.get();
+
+        // Check if the instructor is the owner of this course
+        if (!course.getInstructor().getId().equals(instructor.getId())) {
+            return ResponseEntity.status(403).body("You are not authorized to view mentoring sessions for this course");
+        }
+
+        // Get all mentoring sessions for this course
+        List<MentoringSession> sessions = mentoringSessionRepository.findByCourse(course);
+
+        List<MentoringSessionResponse> responses = sessions.stream()
+                .map(session -> new MentoringSessionResponse(
+                        session.getId(),
+                        session.getStudent().getId(),
+                        session.getStudent().getFullName(),
+                        session.getStudent().getEmail(),
+                        session.getInstructor().getId(),
+                        session.getInstructor().getFullName(),
+                        session.getCourse().getId(),
+                        session.getCourse().getTitle(),
+                        session.getStatus(),
+                        session.getTopic(),
+                        session.getDescription(),
+                        session.getRequestDate(),
+                        session.getSessionDate(),
+                        session.getNotes()))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/mentoring-sessions")
+    public ResponseEntity<?> getAllMentoringSessions(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        User instructor = userOpt.get();
+
+        // Get all mentoring sessions for this instructor
+        List<MentoringSession> sessions = mentoringSessionRepository.findByInstructor(instructor);
+
+        List<MentoringSessionResponse> responses = sessions.stream()
+                .map(session -> new MentoringSessionResponse(
+                        session.getId(),
+                        session.getStudent().getId(),
+                        session.getStudent().getFullName(),
+                        session.getStudent().getEmail(),
+                        session.getInstructor().getId(),
+                        session.getInstructor().getFullName(),
+                        session.getCourse().getId(),
+                        session.getCourse().getTitle(),
+                        session.getStatus(),
+                        session.getTopic(),
+                        session.getDescription(),
+                        session.getRequestDate(),
+                        session.getSessionDate(),
+                        session.getNotes()))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(responses);
+    }
+
+    @PutMapping("/mentoring-sessions/{sessionId}")
+    public ResponseEntity<?> updateMentoringSession(
+            @PathVariable Long sessionId,
+            @RequestBody MentoringSessionUpdateRequest updateRequest,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        User instructor = userOpt.get();
+
+        Optional<MentoringSession> sessionOpt = mentoringSessionRepository.findById(sessionId);
+
+        if (!sessionOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Mentoring session not found");
+        }
+
+        MentoringSession session = sessionOpt.get();
+
+        // Check if the instructor is the owner of this session
+        if (!session.getInstructor().getId().equals(instructor.getId())) {
+            return ResponseEntity.status(403).body("You are not authorized to update this mentoring session");
+        }
+
+        // Update the session status
+        if (updateRequest.getStatus() != null) {
+            session.setStatus(updateRequest.getStatus());
+        }
+
+        // Update session date if provided
+        if (updateRequest.getSessionDate() != null) {
+            session.setSessionDate(updateRequest.getSessionDate());
+        }
+
+        // Update notes if provided
+        if (updateRequest.getNotes() != null) {
+            session.setNotes(updateRequest.getNotes());
+        }
+
+        mentoringSessionRepository.save(session);
+
+        MentoringSessionResponse response = new MentoringSessionResponse(
+                session.getId(),
+                session.getStudent().getId(),
+                session.getStudent().getFullName(),
+                session.getStudent().getEmail(),
+                session.getInstructor().getId(),
+                session.getInstructor().getFullName(),
+                session.getCourse().getId(),
+                session.getCourse().getTitle(),
+                session.getStatus(),
+                session.getTopic(),
+                session.getDescription(),
+                session.getRequestDate(),
+                session.getSessionDate(),
+                session.getNotes());
+
+        return ResponseEntity.ok(response);
     }
 }
