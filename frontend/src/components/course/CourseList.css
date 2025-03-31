@@ -48,7 +48,8 @@
   height: 180px;
   overflow: hidden;
   position: relative;
-  background-color: #f8f9fa;
+  background-color: transparent;
+  border-radius: 12px 12px 0 0;
 }
 
 .course-image img {
@@ -68,14 +69,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #e9ecef;
-  color: #495057;
+  background: linear-gradient(90deg, #4287f5 0%, #42bff5 100%);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .default-course-image span {
   font-size: 4rem;
   font-weight: bold;
-  opacity: 0.5;
 }
 
 .course-details {

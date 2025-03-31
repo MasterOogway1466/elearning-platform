@@ -1,6 +1,7 @@
 package com.elearning.service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,22 @@ public class MentoringService {
 
     public long countAllSessions() {
         return mentoringSessionRepository.count();
+    }
+
+    /**
+     * Cancels a mentoring session by deleting it from the database
+     * 
+     * @param sessionId The ID of the session to cancel
+     * @return true if session was successfully cancelled, false if session was not
+     *         found
+     */
+    public boolean cancelMentoringSession(Long sessionId) {
+        Optional<MentoringSession> sessionOpt = mentoringSessionRepository.findById(sessionId);
+        if (sessionOpt.isPresent()) {
+            mentoringSessionRepository.deleteById(sessionId);
+            return true;
+        }
+        return false;
     }
 
     // Helper methods

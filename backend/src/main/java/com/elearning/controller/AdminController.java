@@ -25,6 +25,8 @@ import com.elearning.service.CourseService;
 import com.elearning.service.InstructorService;
 import com.elearning.service.MentoringService;
 import com.elearning.service.StudentService;
+import com.elearning.model.Enrollment;
+import com.elearning.repository.EnrollmentRepository;
 
 @CrossOrigin(origins = "http://localhost:3000", maxAge = 3600)
 @RestController
@@ -49,6 +51,9 @@ public class AdminController {
 
     @Autowired
     private MentoringService mentoringService;
+
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
 
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getStats() {
@@ -315,9 +320,91 @@ public class AdminController {
         return ResponseEntity.ok(sessions);
     }
 
+    @DeleteMapping("/mentoring-sessions/{sessionId}")
+    public ResponseEntity<?> cancelMentoringSession(@PathVariable Long sessionId) {
+        try {
+            boolean deleted = mentoringService.cancelMentoringSession(sessionId);
+            if (deleted) {
+                return ResponseEntity.ok().body(Map.of("message", "Mentoring session successfully cancelled"));
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error cancelling mentoring session: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/courses")
     public ResponseEntity<List<CourseDTO>> getAllCourses() {
         List<CourseDTO> courses = courseService.getAllCoursesForAdmin();
         return ResponseEntity.ok(courses);
+    }
+
+    @GetMapping("/student/{id}/enrollments")
+    public ResponseEntity<?> getStudentEnrollments(@PathVariable Long id) {
+        try {
+            User student = userRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Student not found"));
+
+            if (!student.getRoles().contains("ROLE_STUDENT")) {
+                return ResponseEntity.badRequest().body("User is not a student");
+            }
+
+            List<Enrollment> enrollments = enrollmentRepository.findByStudent(student);
+
+            // Map enrollments to a simpler format
+            List<Map<String, Object>> enrollmentDetails = enrollments.stream()
+                    .map(enrollment -> {
+                        Course course = enrollment.getCourse();
+                        Map<String, Object> details = new HashMap<>();
+                        details.put("id", enrollment.getId());
+                        details.put("courseId", course.getId());
+                        details.put("courseTitle", course.getTitle());
+                        details.put("enrolledAt", enrollment.getEnrolledAt());
+                        details.put("completed", enrollment.getCompleted());
+                        details.put("completedAt", enrollment.getCompletedAt());
+                        return details;
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(enrollmentDetails);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error fetching student enrollments: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/instructor/{id}/courses")
+    public ResponseEntity<?> getInstructorCourses(@PathVariable Long id) {
+        try {
+            User instructor = userRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Instructor not found"));
+
+            if (!instructor.getRoles().contains("ROLE_INSTRUCTOR")) {
+                return ResponseEntity.badRequest().body("User is not an instructor");
+            }
+
+            List<Course> courses = courseRepository.findByInstructor(instructor);
+
+            List<CourseResponse> courseResponses = courses.stream()
+                    .map(course -> new CourseResponse(
+                            course.getId(),
+                            course.getTitle(),
+                            course.getDescription(),
+                            course.getImageUrl(),
+                            course.getPdfUrl(),
+                            course.getChapters(),
+                            course.getCategory(),
+                            course.getCourseType(),
+                            course.getStatus(),
+                            course.getInstructor().getId(),
+                            course.getInstructor().getFullName(),
+                            course.getCreatedAt(),
+                            course.getUpdatedAt()))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(courseResponses);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error fetching instructor courses: " + e.getMessage());
+        }
     }
 }

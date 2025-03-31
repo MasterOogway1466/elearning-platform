@@ -21,6 +21,7 @@ const ChapterView = () => {
   const [loadingChapterDetail, setLoadingChapterDetail] = useState(false);
   const [chapterDetailError, setChapterDetailError] = useState(null);
   const [showObjectives, setShowObjectives] = useState(false);
+  const [completionMessage, setCompletionMessage] = useState(null);
 
   useEffect(() => {
     const fetchCourseDetails = async () => {
@@ -139,6 +140,34 @@ const ChapterView = () => {
 
   const toggleObjectives = () => {
     setShowObjectives(!showObjectives);
+  };
+
+  const handleCompleteCourse = async () => {
+    try {
+      const response = await axios.post(
+        `http://localhost:8080/api/student/courses/${courseId}/complete`,
+        {},
+        { headers: authHeader() }
+      );
+      
+      setCompletionMessage({
+        type: 'success',
+        text: 'Course completed successfully! Your certificate has been generated.'
+      });
+      
+      // Clear the message after 5 seconds
+      setTimeout(() => {
+        setCompletionMessage(null);
+        // Navigate back to the course page
+        handleBackToCourse();
+      }, 5000);
+    } catch (error) {
+      console.error('Error completing course:', error);
+      setCompletionMessage({
+        type: 'error',
+        text: 'Failed to complete course. Please try again.'
+      });
+    }
   };
 
   if (loading) {
@@ -328,13 +357,21 @@ const ChapterView = () => {
                   </button>
                 )}
                 
-                {activeChapterIndex < chapters.length - 1 && (
+                {activeChapterIndex < chapters.length - 1 ? (
                   <button 
                     className="btn btn-primary"
                     onClick={() => handleChapterClick(activeChapterIndex + 1)}
                   >
                     Next Chapter
                     <i className="bi bi-arrow-right ms-2"></i>
+                  </button>
+                ) : (
+                  <button 
+                    className="btn btn-success"
+                    onClick={handleCompleteCourse}
+                  >
+                    <i className="bi bi-check-circle me-2"></i>
+                    Complete Course
                   </button>
                 )}
               </div>
@@ -399,6 +436,12 @@ const ChapterView = () => {
           </div>
         </div>
       </div>
+
+      {completionMessage && (
+        <div className={`alert alert-${completionMessage.type}`}>
+          {completionMessage.text}
+        </div>
+      )}
     </div>
   );
 };

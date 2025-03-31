@@ -6,6 +6,7 @@ import './Dashboard.css';
 import { Link } from 'react-router-dom';
 import CourseNotes from '../components/student/CourseNotes';
 import mentoringService from '../services/mentoring.service';
+import Certificates from '../components/student/Certificates';
 
 const StudentDashboard = () => {
   const [courses, setCourses] = useState([]);
@@ -598,18 +599,21 @@ const StudentDashboard = () => {
           
               {/* Mentoring Sessions Section */}
               {activeSection === 'mentoring' && (
-                <div className="mentoring-sessions-section">
-                  <p>View and manage your one-on-one mentoring session requests.</p>
-                  
+                <div className="mentoring-section">
                   {loadingMentoring ? (
-                    <div className="loading-message">Loading your mentoring sessions...</div>
+                    <div className="loading-state">
+                      <i className="bi bi-arrow-repeat"></i>
+                      <p>Loading mentoring sessions...</p>
+                    </div>
                   ) : mentoringError ? (
-                    <div className="alert alert-danger">{mentoringError}</div>
+                    <div className="alert alert-danger">
+                      <i className="bi bi-exclamation-circle-fill me-2"></i>
+                      {mentoringError}
+                    </div>
                   ) : mentoringSessions.length === 0 ? (
-                    <div className="no-sessions-message">
-                      <i className="bi bi-person-video3"></i>
-                      <p>You haven't requested any mentoring sessions yet.</p>
-                      <p>Request a mentoring session from your enrolled course pages!</p>
+                    <div className="no-sessions">
+                      <i className="bi bi-calendar-x"></i>
+                      <p>You don't have any mentoring sessions yet.</p>
                     </div>
                   ) : (
                     <div className="sessions-list">
@@ -663,17 +667,11 @@ const StudentDashboard = () => {
               
               {/* Certificates Section */}
               {activeSection === 'certificates' && (
-            <div className="certificates-section">
-              <div className="section-header">
-                    <p>View and download your earned certificates.</p>
-              </div>
-              <div className="courses-empty">
-                <i className="bi bi-award me-2"></i>
-                <h3>No Certificates Yet</h3>
-                <p>Complete courses to earn certificates!</p>
-              </div>
-            </div>
-          )}
+                <div className="certificates-section">
+                  <Certificates />
+                </div>
+              )}
+
             </div>
           </div>
         </div>

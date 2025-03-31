@@ -104,10 +104,11 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #6c757d;
-  color: white;
+  background: linear-gradient(90deg, #4287f5 0%, #42bff5 100%);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 3rem;
   font-weight: bold;
+  opacity: 0.8;
 }
 
 .detail-section {

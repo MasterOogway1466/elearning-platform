@@ -11,6 +11,8 @@ const AllCourses = ({ onViewCourse }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('title'); // 'title', 'instructorName', 'updatedAt'
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc', 'desc'
+  const [actionLoading, setActionLoading] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ show: false, courseId: null, title: '' });
 
   useEffect(() => {
     fetchAllCourses();
@@ -30,6 +32,48 @@ const AllCourses = ({ onViewCourse }) => {
       setError('Failed to load courses. Please try again later.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const confirmRejectCourse = (courseId, courseTitle) => {
+    setConfirmDialog({
+      show: true,
+      courseId,
+      title: courseTitle
+    });
+  };
+
+  const cancelRejectCourse = () => {
+    setConfirmDialog({ show: false, courseId: null, title: '' });
+  };
+
+  const handleRejectCourse = async () => {
+    const courseId = confirmDialog.courseId;
+    
+    try {
+      setActionLoading(courseId);
+      await axios.post(
+        `http://localhost:8080/api/admin/courses/${courseId}/reject`,
+        {},
+        { headers: authHeader() }
+      );
+      
+      // Update the course status in the local state
+      setCourses(prevCourses => 
+        prevCourses.map(course => 
+          course.id === courseId 
+            ? { ...course, status: 'REJECTED' } 
+            : course
+        )
+      );
+      
+      setError('');
+    } catch (err) {
+      console.error('Error rejecting course:', err);
+      setError('Failed to reject course. Please try again later.');
+    } finally {
+      setActionLoading(null);
+      setConfirmDialog({ show: false, courseId: null, title: '' });
     }
   };
 
@@ -217,18 +261,59 @@ const AllCourses = ({ onViewCourse }) => {
                   </td>
                   <td>{course.enrollmentCount || 0}</td>
                   <td>{formatDate(course.updatedAt)}</td>
-                  <td>
+                  <td className="action-buttons">
                     <button 
-                      className="view-details-button"
+                      className="view-button action-button"
                       onClick={() => onViewCourse(course.id)}
                     >
-                      View Details
+                      View
                     </button>
+                    
+                    {course.status === 'APPROVED' && (
+                      <button 
+                        className="reject-button action-button"
+                        onClick={() => confirmRejectCourse(course.id, course.title)}
+                        disabled={actionLoading === course.id}
+                      >
+                        {actionLoading === course.id ? 'Rejecting...' : 'Reject'}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      {confirmDialog.show && (
+        <div className="modal-backdrop">
+          <div className="confirmation-dialog">
+            <div className="confirmation-header">
+              <h3>Confirm Rejection</h3>
+            </div>
+            <div className="confirmation-body">
+              <p>Are you sure you want to reject the approved course "{confirmDialog.title}"?</p>
+              <p className="warning-text">This action will remove the course from student access.</p>
+            </div>
+            <div className="confirmation-footer">
+              <button 
+                className="btn-secondary" 
+                onClick={cancelRejectCourse}
+                disabled={actionLoading === confirmDialog.courseId}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn-danger" 
+                onClick={handleRejectCourse}
+                disabled={actionLoading === confirmDialog.courseId}
+              >
+                {actionLoading === confirmDialog.courseId ? 'Rejecting...' : 'Reject Course'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

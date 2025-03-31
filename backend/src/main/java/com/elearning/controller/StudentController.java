@@ -27,6 +27,9 @@ import com.elearning.security.services.UserDetailsImpl;
 import com.elearning.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -39,6 +42,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import com.elearning.model.Certificate;
+import com.elearning.repository.CertificateRepository;
 
 @CrossOrigin(origins = "http://localhost:3000", maxAge = 3600)
 @RestController
@@ -66,6 +72,9 @@ public class StudentController {
 
     @Autowired
     private MentoringSessionRepository mentoringSessionRepository;
+
+    @Autowired
+    private CertificateRepository certificateRepository;
 
     @GetMapping("/dashboard")
     public ResponseEntity<?> getStudentDashboard() {
@@ -242,11 +251,6 @@ public class StudentController {
     @GetMapping("/progress")
     public ResponseEntity<?> getStudentProgress() {
         return ResponseEntity.ok(new MessageResponse("Student Progress"));
-    }
-
-    @GetMapping("/certificates")
-    public ResponseEntity<?> getStudentCertificates() {
-        return ResponseEntity.ok(new MessageResponse("Student Certificates"));
     }
 
     @GetMapping("/profile")
@@ -764,5 +768,236 @@ public class StudentController {
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(responses);
+    }
+
+    @PostMapping("/courses/{courseId}/complete")
+    public ResponseEntity<?> completeCourse(@PathVariable Long courseId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        try {
+            Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+            Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+            if (!userOpt.isPresent()) {
+                return ResponseEntity.status(404).body("User not found");
+            }
+
+            if (!courseOpt.isPresent()) {
+                return ResponseEntity.status(404).body("Course not found");
+            }
+
+            User student = userOpt.get();
+            Course course = courseOpt.get();
+
+            System.out.println("DEBUG: Starting course completion process");
+            System.out.println("DEBUG: Student ID: " + student.getId() + ", Username: " + student.getUsername());
+            System.out.println("DEBUG: Course ID: " + course.getId() + ", Title: " + course.getTitle());
+
+            // Check if student is enrolled in this course
+            Optional<Enrollment> enrollmentOpt = enrollmentRepository.findByStudentAndCourse(student, course);
+            if (!enrollmentOpt.isPresent()) {
+                System.out.println("DEBUG: Student is not enrolled in the course");
+                return ResponseEntity.badRequest().body("You are not enrolled in this course");
+            }
+
+            Enrollment enrollment = enrollmentOpt.get();
+
+            // Mark the enrollment as completed
+            enrollment.setCompleted(true);
+            enrollment.setCompletedAt(LocalDateTime.now());
+            Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
+            System.out.println("DEBUG: Enrollment marked as completed. Enrollment ID: " + savedEnrollment.getId());
+
+            // Check for existing certificate
+            boolean certificateExists = certificateRepository.existsByStudentAndCourse(student, course);
+            System.out.println("DEBUG: Certificate exists check: " + certificateExists);
+
+            Certificate certificate;
+            // Generate certificate if it doesn't exist
+            if (!certificateExists) {
+                System.out.println("DEBUG: Creating new certificate");
+                certificate = new Certificate();
+                certificate.setStudent(student);
+                certificate.setCourse(course);
+
+                // Print certificate details before saving
+                System.out.println("DEBUG: Certificate details before save:");
+                System.out.println("DEBUG: Student Name: " + certificate.getStudentName());
+                System.out.println("DEBUG: Course Name: " + certificate.getCourseName());
+                System.out.println("DEBUG: Instructor Name: " + certificate.getInstructorName());
+
+                Certificate savedCertificate = certificateRepository.save(certificate);
+                System.out.println("DEBUG: Certificate created successfully");
+                System.out.println("DEBUG: Certificate ID: " + savedCertificate.getId());
+                System.out.println("DEBUG: Certificate Number: " + savedCertificate.getCertificateNumber());
+            } else {
+                System.out.println("DEBUG: Certificate already exists for this course and student");
+                certificate = certificateRepository.findByStudentAndCourse(student, course)
+                        .orElseThrow(() -> new RuntimeException("Certificate not found despite existing check"));
+                System.out.println("DEBUG: Existing Certificate ID: " + certificate.getId());
+            }
+
+            return ResponseEntity.ok(new MessageResponse("Course completed successfully and certificate generated"));
+        } catch (Exception e) {
+            System.err.println("ERROR in completeCourse: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error completing course: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/certificates")
+    public ResponseEntity<?> getMyCertificates(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            System.out.println("DEBUG: Unauthorized request to /certificates - no user details");
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        try {
+            System.out.println("DEBUG: Starting certificate fetch process");
+            Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+
+            if (!userOpt.isPresent()) {
+                System.out.println("DEBUG: User not found: " + userDetails.getUsername());
+                return ResponseEntity.status(404).body("User not found");
+            }
+
+            User student = userOpt.get();
+            System.out.println("DEBUG: Fetching certificates for student ID: " + student.getId() + ", Username: "
+                    + student.getUsername());
+
+            List<Certificate> certificates = certificateRepository.findByStudent(student);
+            System.out.println("DEBUG: Found " + certificates.size() + " certificates");
+
+            // Print details of each certificate found
+            certificates.forEach(cert -> {
+                System.out.println("DEBUG: Certificate details:");
+                System.out.println("DEBUG: ID: " + cert.getId());
+                System.out.println("DEBUG: Certificate Number: " + cert.getCertificateNumber());
+                System.out.println("DEBUG: Course: " + cert.getCourseName());
+                System.out.println("DEBUG: Student: " + cert.getStudentName());
+                System.out.println("DEBUG: Instructor: " + cert.getInstructorName());
+                System.out.println("DEBUG: Issued At: " + cert.getIssuedAt());
+                System.out.println("DEBUG: ----------------------");
+            });
+
+            List<Map<String, Object>> certificateResponses = certificates.stream()
+                    .map(cert -> {
+                        Map<String, Object> response = new HashMap<>();
+                        response.put("id", cert.getId());
+                        response.put("certificateNumber", cert.getCertificateNumber());
+                        response.put("issuedAt", cert.getIssuedAt());
+                        response.put("studentName", cert.getStudentName());
+                        response.put("courseName", cert.getCourseName());
+                        response.put("instructorName", cert.getInstructorName());
+                        response.put("courseId", cert.getCourse().getId());
+                        response.put("studentId", cert.getStudent().getId());
+                        return response;
+                    })
+                    .collect(Collectors.toList());
+
+            System.out.println(
+                    "DEBUG: Successfully mapped " + certificateResponses.size() + " certificates to response format");
+            System.out.println("DEBUG: Response data: " + certificateResponses);
+            return ResponseEntity.ok(certificateResponses);
+        } catch (Exception e) {
+            System.err.println("ERROR in getMyCertificates: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error fetching certificates: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/certificates/{certificateId}")
+    public ResponseEntity<?> getCertificateDetails(
+            @PathVariable Long certificateId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        try {
+            Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+            Optional<Certificate> certificateOpt = certificateRepository.findById(certificateId);
+
+            if (!userOpt.isPresent()) {
+                return ResponseEntity.status(404).body("User not found");
+            }
+
+            if (!certificateOpt.isPresent()) {
+                return ResponseEntity.status(404).body("Certificate not found");
+            }
+
+            Certificate certificate = certificateOpt.get();
+            User student = userOpt.get();
+
+            // Verify that the certificate belongs to the student
+            if (!certificate.getStudent().getId().equals(student.getId())) {
+                return ResponseEntity.status(403).body("You are not authorized to view this certificate");
+            }
+
+            return ResponseEntity.ok(certificate);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error fetching certificate details: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/certificates/{certificateId}/download")
+    public ResponseEntity<?> downloadCertificate(
+            @PathVariable Long certificateId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        try {
+            Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+            Optional<Certificate> certificateOpt = certificateRepository.findById(certificateId);
+
+            if (!userOpt.isPresent()) {
+                return ResponseEntity.status(404).body("User not found");
+            }
+
+            if (!certificateOpt.isPresent()) {
+                return ResponseEntity.status(404).body("Certificate not found");
+            }
+
+            Certificate certificate = certificateOpt.get();
+            User student = userOpt.get();
+
+            // Verify that the certificate belongs to the student
+            if (!certificate.getStudent().getId().equals(student.getId())) {
+                return ResponseEntity.status(403).body("You are not authorized to download this certificate");
+            }
+
+            // Create certificate content
+            String certificateContent = String.format(
+                    "Certificate of Completion\n\n" +
+                            "This is to certify that\n" +
+                            "%s\n\n" +
+                            "has successfully completed the course\n" +
+                            "%s\n\n" +
+                            "Instructor: %s\n" +
+                            "Certificate Number: %s\n" +
+                            "Date Issued: %s\n\n" +
+                            "Congratulations on your achievement!",
+                    certificate.getStudentName(),
+                    certificate.getCourseName(),
+                    certificate.getInstructorName(),
+                    certificate.getCertificateNumber(),
+                    certificate.getIssuedAt() != null ? certificate.getIssuedAt().toString() : "Not available");
+
+            // Set response headers for file download
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.TEXT_PLAIN);
+            headers.setContentDispositionFormData("attachment",
+                    String.format("certificate_%s.txt", certificate.getCertificateNumber()));
+            headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+
+            return new ResponseEntity<>(certificateContent, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error downloading certificate: " + e.getMessage());
+        }
     }
 }
