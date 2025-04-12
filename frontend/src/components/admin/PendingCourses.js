@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import './AdminComponents.css';
-import CourseDetails from '../course/CourseDetails';
 
-const PendingCourses = ({ onViewCourse }) => {
+const PendingCourses = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
-  const [selectedCourseId, setSelectedCourseId] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchPendingCourses();
@@ -50,15 +50,7 @@ const PendingCourses = ({ onViewCourse }) => {
   };
 
   const handleViewCourse = (courseId) => {
-    if (onViewCourse) {
-      onViewCourse(courseId);
-    } else {
-      setSelectedCourseId(courseId);
-    }
-  };
-
-  const handleCloseModal = () => {
-    setSelectedCourseId(null);
+    navigate(`/admin/course/${courseId}`);
   };
 
   if (loading) return <div className="loading">Loading pending courses...</div>;
@@ -126,13 +118,6 @@ const PendingCourses = ({ onViewCourse }) => {
           </tbody>
         </table>
       </div>
-      
-      {selectedCourseId && !onViewCourse && (
-        <CourseDetails 
-          courseId={selectedCourseId}
-          onClose={handleCloseModal}
-        />
-      )}
     </div>
   );
 };

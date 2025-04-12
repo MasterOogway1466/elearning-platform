@@ -17,6 +17,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import StudentCourseView from './components/student/StudentCourseView';
 import ChapterView from './components/student/ChapterView';
 import StudentNotePage from './pages/StudentNotePage';
+import AdminCourseView from './components/admin/AdminCourseView';
+import AdminChapterView from './components/admin/AdminChapterView';
 
 // Auth context
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -102,6 +104,24 @@ function App() {
                   element={
                     <ProtectedRoute
                       element={<AdminDashboard />}
+                      roles={['ROLE_ADMIN']}
+                    />
+                  }
+                />
+                <Route
+                  path="/admin/course/:courseId"
+                  element={
+                    <ProtectedRoute
+                      element={<AdminCourseView />}
+                      roles={['ROLE_ADMIN']}
+                    />
+                  }
+                />
+                <Route
+                  path="/admin/course/:courseId/chapter/:chapterIndex"
+                  element={
+                    <ProtectedRoute
+                      element={<AdminChapterView />}
                       roles={['ROLE_ADMIN']}
                     />
                   }

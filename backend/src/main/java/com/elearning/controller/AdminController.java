@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 import com.elearning.dto.CourseDTO;
 import com.elearning.dto.MentoringSessionDTO;
@@ -27,6 +28,11 @@ import com.elearning.service.MentoringService;
 import com.elearning.service.StudentService;
 import com.elearning.model.Enrollment;
 import com.elearning.repository.EnrollmentRepository;
+import com.elearning.model.ChapterDetail;
+import com.elearning.repository.ChapterDetailRepository;
+import com.elearning.dto.ChapterDetailResponse;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 
 @CrossOrigin(origins = "http://localhost:3000", maxAge = 3600)
 @RestController
@@ -54,6 +60,9 @@ public class AdminController {
 
     @Autowired
     private EnrollmentRepository enrollmentRepository;
+
+    @Autowired
+    private ChapterDetailRepository chapterDetailRepository;
 
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getStats() {
@@ -406,5 +415,48 @@ public class AdminController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error fetching instructor courses: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/course/{courseId}/chapter/{chapterIndex}/details")
+    public ResponseEntity<?> getChapterDetails(
+            @PathVariable Long courseId,
+            @PathVariable Integer chapterIndex,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        Course course = courseOpt.get();
+
+        // Get the chapter detail
+        Optional<ChapterDetail> chapterDetailOpt = chapterDetailRepository
+                .findByCourseAndChapterIndex(course, chapterIndex);
+
+        if (!chapterDetailOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Chapter detail not found");
+        }
+
+        ChapterDetail detail = chapterDetailOpt.get();
+        ChapterDetailResponse response = new ChapterDetailResponse(
+                detail.getId(),
+                detail.getChapterIndex(),
+                detail.getTitle(),
+                detail.getContent(),
+                detail.getObjectives(),
+                detail.getResources(),
+                detail.getCourse().getId(),
+                detail.getInstructor().getId(),
+                detail.getInstructor().getFullName(),
+                detail.getCreatedAt(),
+                detail.getUpdatedAt());
+
+        return ResponseEntity.ok(response);
     }
 }
