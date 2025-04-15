@@ -1,59 +1,59 @@
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\CourseRequest.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\security\JwtUtils.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\NoteResponse.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\User.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\service\MentoringService.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\repository\CertificateRepository.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\repository\NoteRepository.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\ChapterDetailRequest.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\Certificate.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\security\AuthEntryPointJwt.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\controller\AuthController.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\Course.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\Enrollment.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\config\WebConfig.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\service\CourseService.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\ELearningApplication.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\repository\MentoringSessionRepository.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\controller\InstructorController.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\security\WebSecurityConfig.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\MentoringSession.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\service\InstructorService.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\controller\EndpointListController.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\Role.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\security\AuthTokenFilter.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\JwtResponse.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\ChapterDetail.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\repository\UserRepository.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\service\StudentService.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\controller\AdminController.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\CourseType.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\security\UserDetailsImpl.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\MessageResponse.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\CourseResponse.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\UserType.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\MentoringSessionStatus.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\NoteRequest.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\repository\ChapterDetailRepository.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\repository\EnrollmentRepository.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\controller\TestController.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\security\services\UserDetailsImpl.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\MentoringSessionDTO.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\controller\CourseController.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\CourseDTO.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\ChapterDetailResponse.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\EnrollmentRequest.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\security\UserDetailsServiceImpl.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\SignupRequest.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\MentoringSessionResponse.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\MentoringSessionUpdateRequest.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\exception\GlobalExceptionHandler.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\Note.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\controller\DiagnosticController.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\model\CourseStatus.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\MentoringSessionRequest.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\repository\CourseRepository.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\config\CorsConfig.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\controller\StudentController.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\service\UserService.java
-D:\_.Mine._\College\Sixth Semester\5-Credit\5-1-Object Oriented Analysis and Design (C)\Mini Project\elearning-platform\backend\src\main\java\com\elearning\dto\LoginRequest.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/model/Note.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/model/CourseStatus.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/ChapterDetailResponse.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/MentoringSessionRequest.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/model/UserType.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/repository/ChapterDetailRepository.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/config/CorsConfig.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/MentoringSessionUpdateRequest.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/model/ChapterDetail.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/repository/MentoringSessionRepository.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/controller/DiagnosticController.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/repository/NoteRepository.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/controller/StudentController.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/MentoringSessionDTO.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/JwtResponse.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/model/MentoringSessionStatus.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/service/CourseService.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/config/WebConfig.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/repository/EnrollmentRepository.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/ChapterDetailRequest.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/service/UserService.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/controller/CourseController.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/ELearningApplication.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/model/Course.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/security/services/UserDetailsImpl.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/MessageResponse.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/repository/CertificateRepository.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/model/Enrollment.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/NoteRequest.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/LoginRequest.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/controller/EndpointListController.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/controller/TestController.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/CourseResponse.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/controller/AdminController.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/repository/UserRepository.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/security/AuthTokenFilter.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/model/MentoringSession.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/security/UserDetailsServiceImpl.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/model/User.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/model/CourseType.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/security/JwtUtils.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/CourseRequest.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/NoteResponse.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/model/Certificate.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/security/WebSecurityConfig.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/EnrollmentRequest.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/service/StudentService.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/exception/GlobalExceptionHandler.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/model/Role.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/repository/CourseRepository.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/security/AuthEntryPointJwt.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/security/UserDetailsImpl.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/controller/AuthController.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/service/MentoringService.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/controller/InstructorController.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/service/InstructorService.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/MentoringSessionResponse.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/SignupRequest.java
+/home/manas/College/elearning-platform/backend/src/main/java/com/elearning/dto/CourseDTO.java
