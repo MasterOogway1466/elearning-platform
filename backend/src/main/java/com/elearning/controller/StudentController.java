@@ -1000,4 +1000,43 @@ public class StudentController {
             return ResponseEntity.badRequest().body("Error downloading certificate: " + e.getMessage());
         }
     }
+
+    @GetMapping("/courses/{courseId}/pdf")
+    public ResponseEntity<?> getCoursePdf(
+            @PathVariable Long courseId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        User student = userOpt.get();
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        Course course = courseOpt.get();
+
+        // Check if student is enrolled in this course
+        if (!enrollmentRepository.existsByStudentAndCourse(student, course)) {
+            return ResponseEntity.status(403).body("You are not enrolled in this course");
+        }
+
+        // Check if the course has a PDF URL
+        if (course.getPdfUrl() == null || course.getPdfUrl().isEmpty()) {
+            return ResponseEntity.status(404).body("No PDF available for this course");
+        }
+
+        // Return the PDF URL
+        Map<String, String> response = new HashMap<>();
+        response.put("pdfUrl", course.getPdfUrl());
+
+        return ResponseEntity.ok(response);
+    }
 }
