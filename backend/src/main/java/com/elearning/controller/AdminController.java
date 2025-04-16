@@ -459,4 +459,32 @@ public class AdminController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/courses/{courseId}/pdf")
+    public ResponseEntity<?> getCoursePdf(
+            @PathVariable Long courseId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        Optional<Course> courseOpt = courseRepository.findById(courseId);
+
+        if (!courseOpt.isPresent()) {
+            return ResponseEntity.status(404).body("Course not found");
+        }
+
+        Course course = courseOpt.get();
+
+        // Check if the course has a PDF URL
+        if (course.getPdfUrl() == null || course.getPdfUrl().isEmpty()) {
+            return ResponseEntity.status(404).body("No PDF available for this course");
+        }
+
+        // Return the PDF URL
+        Map<String, String> response = new HashMap<>();
+        response.put("pdfUrl", course.getPdfUrl());
+
+        return ResponseEntity.ok(response);
+    }
 }
