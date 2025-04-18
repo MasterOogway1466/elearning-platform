@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import './CourseList.css';
 import CourseDetails from './CourseDetails';
 import { useToast } from '../../context/ToastContext';
+import PaymentConfirmationModal from '../common/PaymentConfirmationModal';
 
 const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledView = false, enrolledCourseIds: externalEnrolledCourseIds, isInstructorCourse = null }) => {
   const [loading, setLoading] = useState(true);
@@ -167,6 +168,12 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
                   </div>
                 )}
               </div>
+              {!isEnrolledView && (
+                <div className="course-price">
+                  <i className="bi bi-currency-rupee"></i>
+                  {course.price || 0}
+                </div>
+              )}
               <p className="course-description">
                 {course.description.length > 100
                   ? `${course.description.substring(0, 100)}...`
@@ -194,7 +201,7 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
                       Unenroll
                     </button>
                   </>
-                ) :
+                ) : (
                   <>
                     <button 
                       onClick={() => handleViewCourse(course.id)} 
@@ -205,7 +212,7 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
                     </button>
                     {showEnrollButton && !isEnrolled(course.id) && (
                       <button
-                        onClick={() => onEnroll(course.id)}
+                        onClick={() => onEnroll(course)}
                         className="btn btn-success btn-sm"
                       >
                         <i className="bi bi-check-circle me-1"></i>
@@ -222,7 +229,7 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
                       </button>
                     )}
                   </>
-                }
+                )}
               </div>
             </div>
           </div>
@@ -244,6 +251,23 @@ const CourseList = ({ courses, onEnroll, showEnrollButton = false, isEnrolledVie
 export const CourseListWithEnrollment = ({ courses, showEnrollButton = true, isInstructorCourse = null }) => {
   const { addToast } = useToast();
   const [localEnrolledCourseIds, setLocalEnrolledCourseIds] = useState([]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  
+  // Helper function to generate price based on course ID
+  const generatePriceFromId = (courseId) => {
+    // Use the last digit of the course ID as the multiplier
+    // If courseId is a string, convert it to a number first
+    const idNumber = typeof courseId === 'string' ? parseInt(courseId, 10) : courseId;
+    const multiplier = (idNumber % 10) || 1; // Use 1 if the last digit is 0
+    return multiplier * 1000;
+  };
+
+  // Add prices to courses based on their IDs
+  const coursesWithPrices = courses.map(course => ({
+    ...course,
+    price: course.price || generatePriceFromId(course.id)
+  }));
   
   // Fetch enrolled course IDs on component mount
   useEffect(() => {
@@ -264,19 +288,28 @@ export const CourseListWithEnrollment = ({ courses, showEnrollButton = true, isI
     fetchEnrolledCourseIds();
   }, []);
   
-  const handleEnroll = async (courseId) => {
+  const handleEnroll = (course) => {
+    setSelectedCourse(course);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentConfirm = async () => {
     try {
       await axios.post(
         'http://localhost:8080/api/student/enroll',
-        { courseId },
+        { courseId: selectedCourse.id },
         { headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` } }
       );
       
       // Update local state instead of reloading the page
-      setLocalEnrolledCourseIds(prev => [...prev, courseId]);
+      setLocalEnrolledCourseIds(prev => [...prev, selectedCourse.id]);
       
       // Show success toast notification
-      addToast("Successfully enrolled in the course", "success");
+      addToast("Payment successful! You are now enrolled in the course", "success");
+      
+      // Close the payment modal
+      setShowPaymentModal(false);
+      setSelectedCourse(null);
     } catch (err) {
       console.error('Failed to enroll:', err);
       addToast("Failed to enroll: " + (err.response?.data?.message || "Unknown error"), "error");
@@ -284,19 +317,34 @@ export const CourseListWithEnrollment = ({ courses, showEnrollButton = true, isI
   };
   
   // Create a modified course list with updated enrollment status
-  const modifiedCourses = courses.map(course => ({
+  const modifiedCourses = coursesWithPrices.map(course => ({
     ...course,
     isEnrolled: localEnrolledCourseIds.includes(course.id)
   }));
   
   return (
-    <CourseList 
-      courses={modifiedCourses} 
-      onEnroll={handleEnroll} 
-      showEnrollButton={showEnrollButton} 
-      enrolledCourseIds={localEnrolledCourseIds}
-      isInstructorCourse={isInstructorCourse}
-    />
+    <>
+      <CourseList 
+        courses={modifiedCourses} 
+        onEnroll={handleEnroll} 
+        showEnrollButton={showEnrollButton} 
+        enrolledCourseIds={localEnrolledCourseIds}
+        isInstructorCourse={isInstructorCourse}
+      />
+      
+      {selectedCourse && (
+        <PaymentConfirmationModal
+          isOpen={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedCourse(null);
+          }}
+          onConfirm={handlePaymentConfirm}
+          courseTitle={selectedCourse.title}
+          coursePrice={selectedCourse.price}
+        />
+      )}
+    </>
   );
 };
 
