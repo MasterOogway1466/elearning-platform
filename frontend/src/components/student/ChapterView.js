@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import authHeader from '../../services/auth-header';
 import noteService from '../../services/note.service';
+import QuizView from '../course/QuizView';
 import './ChapterView.css';
 
 const ChapterView = () => {
@@ -323,27 +324,28 @@ const ChapterView = () => {
                   {/* Quiz Section */}
                   <div className="chapter-section quiz-section">
                     <h4><i className="bi bi-question-circle me-2"></i>Chapter Quiz</h4>
-                    <div className="quiz-content">
-                      <div className="quiz-info">
-                        <p><i className="bi bi-info-circle me-2"></i>Test your knowledge with this chapter's quiz</p>
-                        <div className="quiz-stats">
-                          <span><i className="bi bi-clock me-1"></i>Estimated time: 10 minutes</span>
-                          <span><i className="bi bi-question-circle me-1"></i>Questions: 5</span>
-                        </div>
-                      </div>
-                      <button className="btn btn-primary quiz-start-btn" disabled>
-                        <i className="bi bi-play-circle me-2"></i>
-                        Start Quiz
-                      </button>
-                    </div>
+                    <QuizView 
+                      chapterId={chapterDetail?.id || 0}
+                      onComplete={(score) => {
+                        console.log('Quiz completed with score:', score);
+                        setCompletionMessage(`Quiz completed! Score: ${score.earned}/${score.total} (${score.percentage}%)`);
+                      }}
+                    />
                   </div>
                 </div>
               ) : (
-              <div className="chapter-info-section">
-                <h3>Chapter Information</h3>
-                <p>This is chapter {activeChapterIndex + 1} of the course "{course.title}".</p>
-                <p>Additional chapter content would be displayed here, including text, images, videos, etc.</p>
-              </div>
+                <div className="chapter-info-section">
+                  <h3>Chapter Information</h3>
+                  <p>This is chapter {activeChapterIndex + 1} of the course "{course.title}".</p>
+                  <p>Additional chapter content would be displayed here, including text, images, videos, etc.</p>
+                </div>
+              )}
+
+              {completionMessage && (
+                <div className="alert alert-success mt-3">
+                  <i className="bi bi-check-circle-fill me-2"></i>
+                  {completionMessage}
+                </div>
               )}
 
               <div className="chapter-navigation">
@@ -436,12 +438,6 @@ const ChapterView = () => {
           </div>
         </div>
       </div>
-
-      {completionMessage && (
-        <div className={`alert alert-${completionMessage.type}`}>
-          {completionMessage.text}
-        </div>
-      )}
     </div>
   );
 };

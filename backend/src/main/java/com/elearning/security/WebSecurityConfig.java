@@ -16,6 +16,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpMethod;
 
 import java.util.Arrays;
 
@@ -83,6 +84,10 @@ public class WebSecurityConfig {
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/student/**").hasAuthority("ROLE_STUDENT")
                         .requestMatchers("/api/instructor/**").hasAuthority("ROLE_INSTRUCTOR")
+                        .requestMatchers(HttpMethod.GET, "/api/quizzes/**").hasAnyAuthority("ROLE_STUDENT", "ROLE_INSTRUCTOR")
+                        .requestMatchers(HttpMethod.POST, "/api/quizzes/**").hasAuthority("ROLE_INSTRUCTOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/quizzes/**").hasAuthority("ROLE_INSTRUCTOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/quizzes/**").hasAuthority("ROLE_INSTRUCTOR")
                         .anyRequest().authenticated());
 
         http.authenticationProvider(authenticationProvider());

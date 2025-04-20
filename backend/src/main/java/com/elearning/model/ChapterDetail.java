@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Entity
@@ -40,6 +41,9 @@ public class ChapterDetail {
     @JoinColumn(name = "instructor_id", nullable = false)
     private User instructor;
 
+    @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Quiz> quizzes;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
@@ -53,5 +57,9 @@ public class ChapterDetail {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public Long getId() {
+        return id;
     }
 }

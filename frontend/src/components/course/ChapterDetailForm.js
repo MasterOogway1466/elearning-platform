@@ -1,13 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './CourseStyles.css';
+import QuizList from './QuizList';
+import QuizView from './QuizView';
+import { useAuth } from '../../context/AuthContext';
 
 const ChapterDetailForm = ({ chapterName, initialData, onSubmit, onCancel }) => {
+  const { isInstructor } = useAuth();
   const [formData, setFormData] = useState({
     title: initialData?.title || chapterName || '',
     content: initialData?.content || '',
     objectives: initialData?.objectives || '',
     resources: initialData?.resources || ''
   });
+  
+  useEffect(() => {
+    console.log('ChapterDetailForm - isInstructor:', isInstructor);
+    console.log('ChapterDetailForm - initialData:', initialData);
+  }, [isInstructor, initialData]);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -20,6 +29,11 @@ const ChapterDetailForm = ({ chapterName, initialData, onSubmit, onCancel }) => 
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(formData);
+  };
+
+  const handleQuizComplete = (score) => {
+    console.log('Quiz completed with score:', score);
+    // You can add additional logic here, like updating the user's progress
   };
   
   return (
@@ -89,14 +103,32 @@ const ChapterDetailForm = ({ chapterName, initialData, onSubmit, onCancel }) => 
         </div>
         
         <div className="form-actions">
-          <button type="submit" className="btn btn-primary">
+          <button type="submit" className="btn btn-primary me-2">
             <i className="bi bi-save me-1"></i>
             Save Chapter Details
           </button>
         </div>
       </form>
+
+      <div className="quiz-section mt-4">
+        <h4>
+          <i className="bi bi-question-circle me-2"></i>
+          Chapter Quiz
+        </h4>
+        {isInstructor ? (
+          <QuizList 
+            chapterId={initialData?.id || 0} 
+            isInstructor={isInstructor}
+          />
+        ) : (
+          <QuizView 
+            chapterId={initialData?.id || 0}
+            onComplete={handleQuizComplete}
+          />
+        )}
+      </div>
     </div>
   );
 };
 
-export default ChapterDetailForm; 
+export default ChapterDetailForm;

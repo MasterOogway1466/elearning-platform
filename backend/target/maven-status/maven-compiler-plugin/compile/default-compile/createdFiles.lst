@@ -1,6 +1,7 @@
 com\elearning\dto\CourseRequest.class
 com\elearning\service\UserService.class
 com\elearning\controller\AdminController.class
+com\elearning\dto\ErrorResponse.class
 com\elearning\model\Course.class
 com\elearning\dto\MentoringSessionResponse.class
 com\elearning\model\CourseType.class
@@ -33,6 +34,7 @@ com\elearning\repository\MentoringSessionRepository.class
 com\elearning\security\services\UserDetailsImpl.class
 com\elearning\controller\AuthController.class
 com\elearning\dto\MentoringSessionRequest.class
+com\elearning\repository\QuizRepository.class
 com\elearning\model\MentoringSessionStatus.class
 com\elearning\config\CorsConfig.class
 com\elearning\model\Note.class
@@ -42,7 +44,9 @@ com\elearning\dto\ChapterDetailResponse.class
 com\elearning\dto\LoginRequest.class
 com\elearning\dto\MentoringSessionDTO.class
 com\elearning\repository\EnrollmentRepository.class
+com\elearning\controller\QuizController.class
 com\elearning\dto\ChapterDetailRequest.class
+com\elearning\model\Quiz.class
 com\elearning\controller\EndpointListController.class
 com\elearning\dto\MessageResponse.class
 com\elearning\dto\NoteResponse.class
@@ -52,6 +56,7 @@ com\elearning\model\CourseStatus.class
 com\elearning\controller\DiagnosticController.class
 com\elearning\service\InstructorService.class
 com\elearning\repository\CertificateRepository.class
+com\elearning\model\Question.class
 com\elearning\security\UserDetailsImpl.class
 com\elearning\model\MentoringSession.class
 com\elearning\dto\CourseResponse.class
