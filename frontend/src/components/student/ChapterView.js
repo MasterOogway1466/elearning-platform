@@ -23,6 +23,8 @@ const ChapterView = () => {
   const [chapterDetailError, setChapterDetailError] = useState(null);
   const [showObjectives, setShowObjectives] = useState(false);
   const [completionMessage, setCompletionMessage] = useState(null);
+  const [quizCompleted, setQuizCompleted] = useState(false);
+  const [quizScore, setQuizScore] = useState(null);
 
   useEffect(() => {
     const fetchCourseDetails = async () => {
@@ -143,8 +145,31 @@ const ChapterView = () => {
     setShowObjectives(!showObjectives);
   };
 
+  const handleQuizComplete = (score) => {
+    setQuizCompleted(true);
+    setQuizScore(score);
+  };
+
   const handleCompleteCourse = async () => {
     try {
+      // Only allow course completion if the quiz is completed
+      if (!quizCompleted) {
+        setCompletionMessage({
+          type: 'error',
+          text: 'Please complete the quiz before completing the course.'
+        });
+        return;
+      }
+
+      // Check if the score is at least 75%
+      if (quizScore && quizScore.percentage < 75) {
+        setCompletionMessage({
+          type: 'error',
+          text: 'You need to score at least 75% on the quiz to complete the course and receive a certificate.'
+        });
+        return;
+      }
+
       const response = await axios.post(
         `http://localhost:8080/api/student/courses/${courseId}/complete`,
         {},
@@ -155,13 +180,21 @@ const ChapterView = () => {
         type: 'success',
         text: 'Course completed successfully! Your certificate has been generated.'
       });
+
+      // Use React Router's navigate function directly
+      const viewCertificates = window.confirm('Course completed successfully! Your certificate has been generated. Would you like to view your certificates?');
       
-      // Clear the message after 5 seconds
+      // Clear the message
       setTimeout(() => {
         setCompletionMessage(null);
-        // Navigate back to the course page
-        handleBackToCourse();
-      }, 5000);
+        // Navigate after the message is cleared
+        if (viewCertificates) {
+          navigate('/student-dashboard', { state: { section: 'certificates' } });
+        } else {
+          handleBackToCourse();
+        }
+      }, 1000);
+
     } catch (error) {
       console.error('Error completing course:', error);
       setCompletionMessage({
@@ -326,10 +359,7 @@ const ChapterView = () => {
                     <h4><i className="bi bi-question-circle me-2"></i>Chapter Quiz</h4>
                     <QuizView 
                       chapterId={chapterDetail?.id || 0}
-                      onComplete={(score) => {
-                        console.log('Quiz completed with score:', score);
-                        setCompletionMessage(`Quiz completed! Score: ${score.earned}/${score.total} (${score.percentage}%)`);
-                      }}
+                      onComplete={handleQuizComplete}
                     />
                   </div>
                 </div>
@@ -342,9 +372,9 @@ const ChapterView = () => {
               )}
 
               {completionMessage && (
-                <div className="alert alert-success mt-3">
-                  <i className="bi bi-check-circle-fill me-2"></i>
-                  {completionMessage}
+                <div className={`alert alert-${completionMessage.type || 'success'} mt-3`}>
+                  <i className={`bi bi-${completionMessage.type === 'error' ? 'exclamation-circle-fill' : 'check-circle-fill'} me-2`}></i>
+                  {typeof completionMessage === 'string' ? completionMessage : completionMessage.text}
                 </div>
               )}
 
@@ -369,11 +399,12 @@ const ChapterView = () => {
                   </button>
                 ) : (
                   <button 
-                    className="btn btn-success"
+                    className={`btn ${quizCompleted ? 'btn-success' : 'btn-secondary'}`}
                     onClick={handleCompleteCourse}
+                    disabled={!quizCompleted}
                   >
                     <i className="bi bi-check-circle me-2"></i>
-                    Complete Course
+                    {quizCompleted ? 'Complete Course' : 'Complete Quiz First'}
                   </button>
                 )}
               </div>

@@ -1,153 +1,118 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './CourseStyles.css';
 
 const QuizView = ({ chapterId, onComplete }) => {
   const [quiz, setQuiz] = useState(null);
+  const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
-  const [score, setScore] = useState(null);
+  const [score, setScore] = useState(0);
 
   useEffect(() => {
-    const fetchQuiz = async () => {
-      try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          throw new Error('Please log in to view the quiz');
-        }
-
-        const response = await fetch(`http://localhost:8080/api/quizzes/chapter/${chapterId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        });
-
-        if (response.status === 401) {
-          throw new Error('Your session has expired. Please log in again.');
-        }
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to fetch quiz');
-        }
-
-        const data = await response.json();
-        setQuiz(data);
-        // Initialize answers with empty values
-        const initialAnswers = {};
-        data.questions.forEach((_, index) => {
-          initialAnswers[index] = '';
-        });
-        setAnswers(initialAnswers);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchQuiz();
+    if (chapterId) {
+      fetchQuiz();
+    } else {
+      setError('No chapter ID provided');
+      setLoading(false);
+    }
   }, [chapterId]);
 
-  const handleAnswerChange = (questionIndex, answer) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionIndex]: answer
-    }));
-  };
-
-  const calculateScore = () => {
-    let totalPoints = 0;
-    let earnedPoints = 0;
-    
-    quiz.questions.forEach((question, index) => {
-      totalPoints += question.points;
-      if (answers[index] === question.correctAnswer) {
-        earnedPoints += question.points;
-      }
-    });
-    
-    return {
-      earned: earnedPoints,
-      total: totalPoints,
-      percentage: Math.round((earnedPoints / totalPoints) * 100)
-    };
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const finalScore = calculateScore();
-    setScore(finalScore);
-    setSubmitted(true);
-
+  const fetchQuiz = async () => {
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
-        throw new Error('Please log in to submit the quiz');
+        throw new Error('No authentication token found');
       }
 
-      const response = await fetch(`http://localhost:8080/api/quizzes/${quiz.id}/submit`, {
-        method: 'POST',
+      const response = await axios.get(`http://localhost:8080/api/quizzes/chapter/${chapterId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
           'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          answers,
-          score: finalScore
-        })
+        }
       });
 
-      if (response.status === 401) {
-        throw new Error('Your session has expired. Please log in again.');
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to submit quiz');
-      }
-
-      if (onComplete) {
-        onComplete(finalScore);
+      if (response.data && response.data.length > 0) {
+        const quizData = response.data[0];
+        setQuiz(quizData);
+        // Initialize answers with empty values
+        const initialAnswers = {};
+        quizData.questions.forEach((_, index) => {
+          initialAnswers[index] = '';
+        });
+        setAnswers(initialAnswers);
       }
     } catch (err) {
-      console.error('Error submitting quiz:', err);
-      setError(err.message);
+      setError('Failed to load quiz. Please try again later.');
+      console.error('Error fetching quiz:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAnswerChange = (questionIndex, value) => {
+    setAnswers(prev => ({
+      ...prev,
+      [questionIndex]: value
+    }));
+  };
+
+  const handleSubmit = () => {
+    let totalScore = 0;
+    let totalPoints = 0;
+
+    // Calculate total points and earned points
+    quiz.questions.forEach((question, index) => {
+      const questionPoints = question.points || 1;
+      totalPoints += questionPoints;
+      if (answers[index] === question.correctOptionIndex) {
+        totalScore += questionPoints;
+      }
+    });
+
+    // Calculate percentage
+    const percentage = Math.round((totalScore / totalPoints) * 100);
+    
+    // Update local state
+    setScore(totalScore);
+    setSubmitted(true);
+    
+    // Call onComplete with detailed score information
+    if (onComplete) {
+      onComplete({
+        earned: totalScore,
+        total: totalPoints,
+        percentage: percentage,
+        answers: answers,
+        questions: quiz.questions
+      });
     }
   };
 
   if (loading) {
     return (
-      <div className="quiz-container">
-        <div className="loading-spinner">
-          <i className="bi bi-arrow-repeat"></i>
-          <span>Loading quiz...</span>
-        </div>
+      <div className="loading-spinner">
+        <i className="fas fa-spinner"></i>
+        <p>Loading quiz...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="quiz-container">
-        <div className="alert alert-danger">
-          <i className="bi bi-exclamation-triangle me-2"></i>
-          {error}
-        </div>
+      <div className="error-message">
+        <i className="fas fa-exclamation-circle"></i>
+        <p>{error}</p>
       </div>
     );
   }
 
   if (!quiz) {
     return (
-      <div className="quiz-container">
-        <div className="alert alert-info">
-          <i className="bi bi-info-circle me-2"></i>
-          No quiz available for this chapter.
-        </div>
+      <div className="error-message">
+        <i className="fas fa-exclamation-circle"></i>
+        <p>No quiz found for this chapter.</p>
       </div>
     );
   }
@@ -155,83 +120,90 @@ const QuizView = ({ chapterId, onComplete }) => {
   return (
     <div className="quiz-container">
       <div className="quiz-header">
-        <h3>
-          <i className="bi bi-question-circle me-2"></i>
-          {quiz.title}
-        </h3>
+        <h3>{quiz.title}</h3>
         {submitted && (
-          <div className={`score-badge ${score.percentage >= 70 ? 'text-success' : 'text-danger'}`}>
-            Score: {score.earned}/{score.total} ({score.percentage}%)
+          <div className="score-badge">
+            Score: {score}/{quiz.questions.reduce((total, q) => total + (q.points || 1), 0)}
           </div>
         )}
       </div>
 
-      <form onSubmit={handleSubmit}>
-        {quiz.questions.map((question, index) => (
-          <div key={index} className="question-card">
-            <div className="question-header">
-              <h3>Question {index + 1}</h3>
-              <span className="points-badge">{question.points} points</span>
-            </div>
-            <p className="question-text">{question.text}</p>
-            
-            <div className="options-container">
-              {question.options.map((option, optionIndex) => (
-                <div key={optionIndex} className="option-item">
-                  <input
-                    type="radio"
-                    id={`q${index}-o${optionIndex}`}
-                    name={`question-${index}`}
-                    value={optionIndex}
-                    checked={answers[index] === optionIndex}
-                    onChange={() => handleAnswerChange(index, optionIndex)}
-                    disabled={submitted}
-                    className="option-radio"
-                  />
-                  <label 
-                    htmlFor={`q${index}-o${optionIndex}`}
-                    className={`option-label ${
-                      submitted && optionIndex === question.correctAnswer ? 'correct' : ''
-                    } ${
-                      submitted && answers[index] === optionIndex && 
-                      answers[index] !== question.correctAnswer ? 'incorrect' : ''
-                    }`}
-                  >
-                    {option}
-                  </label>
-                </div>
-              ))}
-            </div>
-            
-            {submitted && (
-              <div className="feedback">
-                {answers[index] === question.correctAnswer ? (
-                  <div className="correct-feedback">
-                    Correct! +{question.points} points
-                  </div>
-                ) : (
-                  <div className="incorrect-feedback">
-                    Incorrect. The correct answer is: {question.correctAnswer}
-                  </div>
-                )}
+      {quiz.questions.map((question, questionIndex) => (
+        <div key={questionIndex} className="question-card">
+          <div className="question-header">
+            <h3>Question {questionIndex + 1}</h3>
+            <span className="points-badge">{question.points || 1} point{question.points !== 1 ? 's' : ''}</span>
+          </div>
+          
+          <p className="question-text">{question.questionText}</p>
+          
+          <div className="options-container">
+            {question.options.map((option, optionIndex) => (
+              <div key={optionIndex} className="option-item">
+                <input
+                  type="radio"
+                  id={`question-${questionIndex}-option-${optionIndex}`}
+                  name={`question-${questionIndex}`}
+                  value={optionIndex}
+                  checked={answers[questionIndex] === optionIndex}
+                  onChange={(e) => handleAnswerChange(questionIndex, parseInt(e.target.value))}
+                  disabled={submitted}
+                  className="option-radio"
+                />
+                <label
+                  htmlFor={`question-${questionIndex}-option-${optionIndex}`}
+                  className={`option-label ${
+                    submitted
+                      ? optionIndex === question.correctOptionIndex
+                        ? 'correct'
+                        : answers[questionIndex] === optionIndex
+                        ? 'incorrect'
+                        : ''
+                      : ''
+                  }`}
+                >
+                  {option}
+                </label>
               </div>
-            )}
+            ))}
           </div>
-        ))}
 
-        {!submitted && (
-          <div className="quiz-actions">
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={Object.values(answers).some(answer => !answer)}
-            >
-              <i className="bi bi-check-circle me-1"></i>
-              Submit Quiz
-            </button>
-          </div>
+          {submitted && (
+            <div className={`feedback ${
+              answers[questionIndex] === question.correctOptionIndex
+                ? 'correct-feedback'
+                : 'incorrect-feedback'
+            }`}>
+              {answers[questionIndex] === question.correctOptionIndex ? (
+                <p>Correct! Well done!</p>
+              ) : (
+                <p>
+                  Incorrect. The correct answer is: {question.options[question.correctOptionIndex]}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+
+      <div className="quiz-actions">
+        {!submitted ? (
+          <button
+            className="btn btn-primary"
+            onClick={handleSubmit}
+            disabled={Object.keys(answers).length !== quiz.questions.length}
+          >
+            Submit Quiz
+          </button>
+        ) : (
+          <button
+            className="btn btn-secondary"
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </button>
         )}
-      </form>
+      </div>
     </div>
   );
 };

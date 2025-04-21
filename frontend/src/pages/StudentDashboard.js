@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 import authHeader from '../services/auth-header';
 import CourseList, { CourseListWithEnrollment } from '../components/course/CourseList';
 import './Dashboard.css';
@@ -9,6 +10,7 @@ import mentoringService from '../services/mentoring.service';
 import Certificates from '../components/student/Certificates';
 
 const StudentDashboard = () => {
+  const location = useLocation();
   const [courses, setCourses] = useState([]);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +29,13 @@ const StudentDashboard = () => {
   const [mentoringSessions, setMentoringSessions] = useState([]);
   const [loadingMentoring, setLoadingMentoring] = useState(false);
   const [mentoringError, setMentoringError] = useState('');
+
+  useEffect(() => {
+    // Set active section from navigation state if available
+    if (location.state?.section) {
+      setActiveSection(location.state.section);
+    }
+  }, [location]);
 
   const fetchUserType = async () => {
     try {

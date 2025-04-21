@@ -3,6 +3,7 @@ import axios from 'axios';
 import authHeader from '../../services/auth-header';
 import ChapterDetailForm from './ChapterDetailForm';
 import '../../pages/Dashboard.css';
+import { useNavigate } from 'react-router-dom';
 
 const EditCourse = ({ course, onSuccess, onCancel }) => {
   const [courseData, setCourseData] = useState({
@@ -21,6 +22,7 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
   const [imagePreview, setImagePreview] = useState('');
   const [activeChapterIndex, setActiveChapterIndex] = useState(null);
   const [showChapterDetailForm, setShowChapterDetailForm] = useState(false);
+  const navigate = useNavigate();
 
   // Load course data when component mounts or course changes
   useEffect(() => {
@@ -72,10 +74,10 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
       setImagePreview(value);
     }
     
-    setCourseData({
-      ...courseData,
+    setCourseData(prevData => ({
+      ...prevData,
       [name]: value
-    });
+    }));
   };
 
   const handleChapterChange = (index, value) => {
@@ -176,77 +178,112 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-    
+    console.log('Starting course update process...');
+    console.log('Current course data:', courseData);
+    console.log('Course ID:', course.id);
+
     // Filter out empty chapters
     const filteredChapters = courseData.chapters.filter(chapter => chapter.trim() !== '');
-    
-    // Ensure there's at least one chapter
-    if (filteredChapters.length === 0) {
-      filteredChapters.push("Chapter 1"); // Add a default chapter if all are empty
+    console.log('Filtered chapters:', filteredChapters);
+
+    // Validate required fields
+    if (!courseData.title.trim()) {
+        setError('Title is required');
+        return;
     }
-    
-    // Validate required fields before sending
-    if (!courseData.title || courseData.title.trim().length < 3) {
-      setError('Title is required and must be at least 3 characters');
-      setLoading(false);
-      return;
+    if (!courseData.description.trim()) {
+        setError('Description is required');
+        return;
     }
-    
-    if (!courseData.description || courseData.description.trim().length < 10) {
-      setError('Description is required and must be at least 10 characters');
-      setLoading(false);
-      return;
+    if (!courseData.category.trim()) {
+        setError('Category is required');
+        return;
     }
-    
-    if (!courseData.category || courseData.category.trim() === '') {
-      setError('Category is required');
-      setLoading(false);
-      return;
-    }
-    
     if (!courseData.courseType) {
-      setError('Course type is required');
-      setLoading(false);
-      return;
+        setError('Course type is required');
+        return;
     }
-    
-    const dataToSend = {
-      ...courseData,
-      chapters: filteredChapters
-    };
-    
+
     try {
-      // First update the course
-      const response = await axios.post(
-        `http://localhost:8080/api/instructor/courses/${course.id}/simple-update`,
-        dataToSend,
-        { headers: authHeader() }
-      );
-      
-      // Then update chapter details if they exist
-      if (courseData.chapterDetails.length > 0) {
-        for (const detail of courseData.chapterDetails) {
-          await axios.post(
-            `http://localhost:8080/api/instructor/courses/${course.id}/chapters`,
-            detail,
-            { headers: authHeader() }
-          );
+        setLoading(true);
+        setError(null);
+
+        // Format the data according to CourseRequest structure
+        const courseDataToSend = {
+            title: courseData.title.trim(),
+            description: courseData.description.trim(),
+            imageUrl: courseData.imageUrl || null,
+            pdfUrl: courseData.pdfUrl || null,
+            chapters: filteredChapters,
+            category: courseData.category.trim(),
+            courseType: courseData.courseType
+        };
+
+        console.log('Sending course update request with data:', courseDataToSend);
+
+        // Get auth headers
+        const headers = authHeader();
+        console.log('Auth headers:', headers);
+
+        // Make the update request
+        const response = await axios.put(
+            `http://localhost:8080/api/instructor/courses/${course.id}`,
+            courseDataToSend,
+            {
+                headers: {
+                    ...headers,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        console.log('Course update response:', response.data);
+
+        // Update chapter details if they exist
+        if (courseData.chapterDetails && courseData.chapterDetails.length > 0) {
+            console.log('Updating chapter details:', courseData.chapterDetails);
+            
+            // Process each chapter detail
+            for (const detail of courseData.chapterDetails) {
+                try {
+                    await axios.post(
+                        `http://localhost:8080/api/instructor/courses/${course.id}/chapters`,
+                        {
+                            chapterIndex: detail.chapterIndex,
+                            title: detail.title,
+                            content: detail.content,
+                            objectives: detail.objectives,
+                            resources: detail.resources
+                        },
+                        { headers }
+                    );
+                } catch (detailError) {
+                    console.error(`Error updating chapter detail ${detail.chapterIndex}:`, detailError);
+                }
+            }
         }
-      }
-      
-      setSuccess(true);
-      
-      // Call the onSuccess callback with the updated course
-      if (onSuccess) {
-        onSuccess(response.data);
-      }
-    } catch (err) {
-      console.error('Error updating course:', err);
-      setError(err.response?.data || 'Failed to update course. Please try again.');
+
+        // Show success message
+        setSuccess(true);
+        console.log('Course update completed successfully');
+        
+        // Call the onSuccess callback with the updated course
+        if (onSuccess) {
+            onSuccess(response.data);
+        }
+
+        // Wait for a short delay to show the success message
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Call onCancel to return to the courses list
+        if (onCancel) {
+            onCancel();
+        }
+    } catch (error) {
+        console.error('Error updating course:', error);
+        setError(error.response?.data || 'Failed to update course');
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
 

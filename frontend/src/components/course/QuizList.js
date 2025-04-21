@@ -82,6 +82,72 @@ const QuizList = ({ chapterId, isInstructor }) => {
     fetchQuizzes();
   };
 
+  const handleDeleteQuiz = async (quizId) => {
+    if (!window.confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setError('Please log in to delete the quiz');
+        return;
+      }
+
+      console.log('Deleting quiz with ID:', quizId);
+      
+      // Create a new XMLHttpRequest
+      const xhr = new XMLHttpRequest();
+      xhr.open('DELETE', `http://localhost:8080/api/quizzes/${quizId}`, true);
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.setRequestHeader('Accept', 'application/json');
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      
+      xhr.onload = function() {
+        console.log('Delete response status:', xhr.status);
+        
+        if (xhr.status >= 200 && xhr.status < 300) {
+          // Success
+          console.log('Quiz deleted successfully');
+          fetchQuizzes(); // Refresh the quiz list
+        } else {
+          // Error
+          let errorMessage = 'Failed to delete quiz';
+          
+          if (xhr.status === 401) {
+            errorMessage = 'Your session has expired. Please log in again.';
+          } else if (xhr.status === 403) {
+            errorMessage = 'You do not have permission to delete this quiz.';
+          } else if (xhr.status === 404) {
+            errorMessage = 'Quiz not found.';
+          } else if (xhr.status === 405) {
+            errorMessage = 'Delete operation not supported. Please try again later.';
+          } else {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              errorMessage = response.message || errorMessage;
+            } catch (e) {
+              console.error('Error parsing error response:', e);
+            }
+          }
+          
+          console.error('Error deleting quiz:', errorMessage);
+          setError(errorMessage);
+        }
+      };
+      
+      xhr.onerror = function() {
+        console.error('Network error occurred');
+        setError('Network error occurred. Please check your connection and try again.');
+      };
+      
+      xhr.send();
+    } catch (err) {
+      console.error('Error deleting quiz:', err);
+      setError(err.message || 'Failed to delete quiz. Please try again later.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="quiz-list-container">
@@ -115,12 +181,14 @@ const QuizList = ({ chapterId, isInstructor }) => {
     <div className="quiz-list-container">
       <div className="quiz-header">
         <h2>Quizzes</h2>
-        <button 
-          className="btn btn-primary"
-          onClick={() => setShowQuizForm(true)}
-        >
-          Add Quiz
-        </button>
+        {isInstructor && (
+          <button 
+            className="btn btn-primary"
+            onClick={() => setShowQuizForm(true)}
+          >
+            Add Quiz
+          </button>
+        )}
       </div>
 
       {showQuizForm && (
@@ -145,25 +213,25 @@ const QuizList = ({ chapterId, isInstructor }) => {
             <div key={quiz.id} className="quiz-card">
               <div className="quiz-card-header">
                 <h3>{quiz.title}</h3>
-                <div className="quiz-actions">
-                  <button
-                    className="btn btn-sm btn-outline-primary me-2"
-                    onClick={() => handleEditQuiz(quiz)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="btn btn-sm btn-outline-danger"
-                    onClick={() => {
-                      // Implement delete functionality
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
+                {isInstructor && (
+                  <div className="quiz-actions">
+                    <button
+                      className="btn btn-sm btn-outline-primary me-2"
+                      onClick={() => handleEditQuiz(quiz)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline-danger"
+                      onClick={() => handleDeleteQuiz(quiz.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
               
-              <div className="questions-list">
+              <div className="quiz-content">
                 {quiz.questions.map((question, index) => (
                   <div key={index} className="question-item">
                     <div className="question-header">

@@ -57,42 +57,38 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("authorization", "content-type", "x-auth-token"));
-        configuration.setExposedHeaders(Arrays.asList("x-auth-token"));
-        configuration.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/quizzes/**").hasAnyAuthority("ROLE_STUDENT", "ROLE_INSTRUCTOR")
+                .requestMatchers(HttpMethod.POST, "/api/quizzes/**").hasAnyAuthority("ROLE_STUDENT", "ROLE_INSTRUCTOR")
+                .requestMatchers(HttpMethod.PUT, "/api/quizzes/**").hasAuthority("ROLE_INSTRUCTOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/quizzes/**").hasAuthority("ROLE_INSTRUCTOR")
+                .requestMatchers(HttpMethod.GET, "/api/instructor/**").hasAuthority("ROLE_INSTRUCTOR")
+                .requestMatchers(HttpMethod.POST, "/api/instructor/**").hasAuthority("ROLE_INSTRUCTOR")
+                .requestMatchers(HttpMethod.PUT, "/api/instructor/**").hasAuthority("ROLE_INSTRUCTOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/instructor/**").hasAuthority("ROLE_INSTRUCTOR")
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/diagnostic").permitAll()
-                        .requestMatchers("/open").permitAll()
-                        .requestMatchers("/db-test").permitAll()
-                        .requestMatchers("/error").permitAll()
-                        .requestMatchers("/api/student/**").hasAuthority("ROLE_STUDENT")
-                        .requestMatchers("/api/instructor/**").hasAuthority("ROLE_INSTRUCTOR")
-                        .requestMatchers(HttpMethod.GET, "/api/quizzes/**").hasAnyAuthority("ROLE_STUDENT", "ROLE_INSTRUCTOR")
-                        .requestMatchers(HttpMethod.POST, "/api/quizzes/**").hasAuthority("ROLE_INSTRUCTOR")
-                        .requestMatchers(HttpMethod.PUT, "/api/quizzes/**").hasAuthority("ROLE_INSTRUCTOR")
-                        .requestMatchers(HttpMethod.DELETE, "/api/quizzes/**").hasAuthority("ROLE_INSTRUCTOR")
-                        .anyRequest().authenticated());
-
-        http.authenticationProvider(authenticationProvider());
-        http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

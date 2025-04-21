@@ -13,6 +13,7 @@ class AuthService {
         if (response.data.token) {
           localStorage.setItem('user', JSON.stringify(response.data));
           localStorage.setItem('authToken', response.data.token);
+          console.log('Auth token stored:', response.data.token);
         }
 
         return response.data;

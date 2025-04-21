@@ -837,7 +837,21 @@ public class StudentController {
                 System.out.println("DEBUG: Certificate already exists for this course and student");
                 certificate = certificateRepository.findByStudentAndCourse(student, course)
                         .orElseThrow(() -> new RuntimeException("Certificate not found despite existing check"));
-                System.out.println("DEBUG: Existing Certificate ID: " + certificate.getId());
+                
+                // Update certificate with latest course details
+                System.out.println("DEBUG: Updating existing certificate with latest course details");
+                certificate.setCourseName(course.getTitle());
+                if (course.getInstructor() != null) {
+                    certificate.setInstructorName(course.getInstructor().getFullName());
+                }
+                certificate.setIssuedAt(LocalDateTime.now());
+                
+                // Save the updated certificate
+                certificate = certificateRepository.save(certificate);
+                System.out.println("DEBUG: Certificate updated successfully");
+                System.out.println("DEBUG: Updated Certificate ID: " + certificate.getId());
+                System.out.println("DEBUG: Updated Course Name: " + certificate.getCourseName());
+                System.out.println("DEBUG: Updated Instructor Name: " + certificate.getInstructorName());
             }
 
             return ResponseEntity.ok(new MessageResponse("Course completed successfully and certificate generated"));

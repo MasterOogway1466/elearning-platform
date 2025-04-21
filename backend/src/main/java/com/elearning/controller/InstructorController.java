@@ -333,6 +333,10 @@ public class InstructorController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody CourseRequest courseRequest) {
 
+        // Debug logging for authentication
+        System.out.println("User details: " + (userDetails != null ? userDetails.getUsername() : "null"));
+        System.out.println("User authorities: " + (userDetails != null ? userDetails.getAuthorities() : "null"));
+
         // Debug logging to see the entire courseRequest
         System.out.println("Received course update request: " + courseRequest);
 
@@ -349,6 +353,7 @@ public class InstructorController {
 
         try {
             if (userDetails == null) {
+                System.out.println("User details is null - unauthorized");
                 return ResponseEntity.status(401).body("Unauthorized");
             }
 
@@ -356,10 +361,12 @@ public class InstructorController {
             Optional<Course> courseOpt = courseRepository.findById(courseId);
 
             if (!userOpt.isPresent()) {
+                System.out.println("User not found: " + userDetails.getUsername());
                 return ResponseEntity.status(404).body("User not found");
             }
 
             if (!courseOpt.isPresent()) {
+                System.out.println("Course not found: " + courseId);
                 return ResponseEntity.status(404).body("Course not found");
             }
 
@@ -369,9 +376,12 @@ public class InstructorController {
             // Debug logging
             System.out.println("Current course type: " + course.getCourseType());
             System.out.println("New course type from request: " + courseRequest.getCourseType());
+            System.out.println("Course instructor ID: " + course.getInstructor().getId());
+            System.out.println("Requesting user ID: " + instructor.getId());
 
             // Verify that the instructor owns this course
             if (!course.getInstructor().getId().equals(instructor.getId())) {
+                System.out.println("Unauthorized access attempt - instructor ID mismatch");
                 return ResponseEntity.status(403).body("You are not authorized to update this course");
             }
 
@@ -436,6 +446,7 @@ public class InstructorController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            System.out.println("Error updating course: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.badRequest().body("Error updating course: " + e.getMessage());
         }

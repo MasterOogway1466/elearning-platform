@@ -3,9 +3,15 @@ package com.elearning.controller;
 import com.elearning.model.ChapterDetail;
 import com.elearning.model.Question;
 import com.elearning.model.Quiz;
+import com.elearning.model.QuizSubmission;
+import com.elearning.model.User;
 import com.elearning.repository.ChapterDetailRepository;
 import com.elearning.repository.QuizRepository;
+import com.elearning.repository.QuizSubmissionRepository;
+import com.elearning.repository.UserRepository;
 import com.elearning.dto.ErrorResponse;
+import com.elearning.dto.QuizSubmissionRequest;
+import com.elearning.security.JwtUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +24,11 @@ import org.springframework.http.HttpStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/quizzes")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "http://localhost:3000", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
 public class QuizController {
     private static final Logger logger = LoggerFactory.getLogger(QuizController.class);
 
@@ -30,6 +37,15 @@ public class QuizController {
 
     @Autowired
     private ChapterDetailRepository chapterDetailRepository;
+
+    @Autowired
+    private QuizSubmissionRepository quizSubmissionRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private JwtUtils jwtUtils;
 
     @GetMapping("/chapter/{chapterId}")
     @Transactional(readOnly = true)
@@ -108,12 +124,7 @@ public class QuizController {
         }
     }
 
-    @RequestMapping(
-        path = "/{quizId}",
-        method = RequestMethod.PUT,
-        consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE},
-        produces = MediaType.APPLICATION_JSON_VALUE
-    )
+    @PutMapping("/{quizId}")
     @Transactional
     public ResponseEntity<?> updateQuiz(@PathVariable Long quizId, @RequestBody Quiz quiz) {
         logger.info("Received PUT request to update quiz with ID: {}", quizId);
@@ -237,11 +248,23 @@ public class QuizController {
         }
     }
 
-    @DeleteMapping(path = "/quizzes/{quizId}")
+    @DeleteMapping("/{quizId}")
     @Transactional
     public ResponseEntity<?> deleteQuiz(@PathVariable Long quizId) {
         try {
-            logger.info("Deleting quiz with ID: {}", quizId);
+            logger.info("Received DELETE request for quiz with ID: {}", quizId);
+            
+            // Log request headers
+            jakarta.servlet.http.HttpServletRequest request = 
+                ((jakarta.servlet.http.HttpServletRequest) org.springframework.web.context.request.RequestContextHolder
+                    .currentRequestAttributes().resolveReference("request"));
+            java.util.Enumeration<String> headerNames = request.getHeaderNames();
+            StringBuilder headers = new StringBuilder("Request headers: ");
+            while (headerNames.hasMoreElements()) {
+                String headerName = headerNames.nextElement();
+                headers.append(headerName).append("=").append(request.getHeader(headerName)).append(", ");
+            }
+            logger.info(headers.toString());
             
             if (!quizRepository.existsById(quizId)) {
                 logger.error("Quiz not found with ID: {}", quizId);
@@ -255,6 +278,55 @@ public class QuizController {
             logger.error("Error deleting quiz: ", e);
             return ResponseEntity.internalServerError()
                 .body(new ErrorResponse("Failed to delete quiz", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{quizId}/submit")
+    @Transactional
+    public ResponseEntity<?> submitQuiz(
+            @PathVariable Long quizId,
+            @RequestBody QuizSubmissionRequest submissionRequest,
+            @RequestHeader("Authorization") String token) {
+        try {
+            logger.info("Received quiz submission for quiz ID: {}", quizId);
+            
+            // Extract username from JWT token
+            String username = jwtUtils.getUserNameFromJwtToken(token.substring(7));
+            Optional<User> userOpt = userRepository.findByUsername(username);
+            if (userOpt.isEmpty()) {
+                logger.error("User not found for username: {}", username);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorResponse("User not found", "USER_NOT_FOUND"));
+            }
+            User user = userOpt.get();
+
+            // Get the quiz
+            Optional<Quiz> quizOpt = quizRepository.findById(quizId);
+            if (quizOpt.isEmpty()) {
+                logger.error("Quiz not found with ID: {}", quizId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse("Quiz not found", "QUIZ_NOT_FOUND"));
+            }
+            Quiz quiz = quizOpt.get();
+
+            // Create submission
+            QuizSubmission submission = new QuizSubmission();
+            submission.setQuiz(quiz);
+            submission.setUser(user);
+            submission.setEarnedPoints(submissionRequest.getScore().getEarned());
+            submission.setTotalPoints(submissionRequest.getScore().getTotal());
+            submission.setPercentage(submissionRequest.getScore().getPercentage());
+            submission.setAnswers(submissionRequest.getAnswers());
+
+            // Save submission
+            QuizSubmission savedSubmission = quizSubmissionRepository.save(submission);
+            logger.info("Quiz submission saved successfully with ID: {}", savedSubmission.getId());
+
+            return ResponseEntity.ok(savedSubmission);
+        } catch (Exception e) {
+            logger.error("Error submitting quiz: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("Failed to submit quiz", e.getMessage()));
         }
     }
 } 
