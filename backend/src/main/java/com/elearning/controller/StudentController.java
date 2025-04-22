@@ -663,6 +663,7 @@ public class StudentController {
                 detail.getContent(),
                 detail.getObjectives(),
                 detail.getResources(),
+                detail.getVideoUrl(),
                 detail.getCourse().getId(),
                 detail.getInstructor().getId(),
                 detail.getInstructor().getFullName(),

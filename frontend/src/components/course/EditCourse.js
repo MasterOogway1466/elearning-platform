@@ -136,6 +136,8 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
   };
 
   const handleChapterDetailSubmit = (detailData) => {
+    console.log('handleChapterDetailSubmit called with data:', JSON.stringify(detailData, null, 2));
+    
     // Check if there's already a detail for this chapter
     const existingDetailIndex = courseData.chapterDetails.findIndex(
       detail => detail.chapterIndex === activeChapterIndex
@@ -148,15 +150,22 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
       updatedChapterDetails = [...courseData.chapterDetails];
       updatedChapterDetails[existingDetailIndex] = {
         ...detailData,
-        chapterIndex: activeChapterIndex
+        chapterIndex: activeChapterIndex,
+        videoUrl: detailData.videoUrl || '' // Ensure videoUrl is included
       };
     } else {
       // Add new chapter detail
       updatedChapterDetails = [
         ...courseData.chapterDetails,
-        { ...detailData, chapterIndex: activeChapterIndex }
+        { 
+          ...detailData, 
+          chapterIndex: activeChapterIndex,
+          videoUrl: detailData.videoUrl || '' // Ensure videoUrl is included
+        }
       ];
     }
+    
+    console.log('Updated chapter details:', JSON.stringify(updatedChapterDetails, null, 2));
     
     setCourseData({
       ...courseData,
@@ -179,111 +188,106 @@ const EditCourse = ({ course, onSuccess, onCancel }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log('Starting course update process...');
-    console.log('Current course data:', courseData);
-    console.log('Course ID:', course.id);
-
-    // Filter out empty chapters
-    const filteredChapters = courseData.chapters.filter(chapter => chapter.trim() !== '');
-    console.log('Filtered chapters:', filteredChapters);
-
-    // Validate required fields
-    if (!courseData.title.trim()) {
-        setError('Title is required');
-        return;
-    }
-    if (!courseData.description.trim()) {
-        setError('Description is required');
-        return;
-    }
-    if (!courseData.category.trim()) {
-        setError('Category is required');
-        return;
-    }
-    if (!courseData.courseType) {
-        setError('Course type is required');
-        return;
-    }
 
     try {
-        setLoading(true);
+    setLoading(true);
         setError(null);
 
-        // Format the data according to CourseRequest structure
+        // Get auth headers and verify token
+        const headers = authHeader();
+        const user = JSON.parse(localStorage.getItem('user'));
+        console.log('Current user:', user);
+        console.log('Using auth headers:', headers);
+
+        if (!headers.Authorization) {
+            setError('You are not authorized. Please log in again.');
+      return;
+    }
+    
+        // Update chapter details if they exist
+        if (courseData.chapterDetails && courseData.chapterDetails.length > 0) {
+            console.log('Updating chapter details:', JSON.stringify(courseData.chapterDetails, null, 2));
+            
+            // Process each chapter detail
+            for (const detail of courseData.chapterDetails) {
+                try {
+                    const chapterData = {
+                        chapterIndex: detail.chapterIndex,
+                        title: detail.title || courseData.chapters[detail.chapterIndex],
+                        content: detail.content,
+                        objectives: detail.objectives,
+                        resources: detail.resources,
+                        videoUrl: detail.videoUrl
+                    };
+                    
+                    console.log('Sending chapter detail update for chapter', detail.chapterIndex, ':', JSON.stringify(chapterData, null, 2));
+
+                    // Use POST for both creating and updating chapter details
+                    console.log('Sending POST request for chapter detail');
+      const response = await axios.post(
+            `http://localhost:8080/api/instructor/courses/${course.id}/chapters`,
+                        chapterData,
+                        { 
+                            headers: {
+                                'Authorization': headers.Authorization,
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
+                    console.log('Chapter detail update successful:', JSON.stringify(response.data, null, 2));
+                } catch (detailError) {
+                    console.error(`Error updating chapter detail ${detail.chapterIndex}:`, detailError);
+                    console.error('Error response:', detailError.response?.data);
+                    throw detailError;
+                }
+            }
+        }
+
+        // Format the course data
         const courseDataToSend = {
             title: courseData.title.trim(),
             description: courseData.description.trim(),
             imageUrl: courseData.imageUrl || null,
             pdfUrl: courseData.pdfUrl || null,
-            chapters: filteredChapters,
+            chapters: courseData.chapters.filter(chapter => chapter.trim() !== ''),
             category: courseData.category.trim(),
             courseType: courseData.courseType
         };
 
         console.log('Sending course update request with data:', courseDataToSend);
 
-        // Get auth headers
-        const headers = authHeader();
-        console.log('Auth headers:', headers);
-
-        // Make the update request
+        // Update the course
         const response = await axios.put(
             `http://localhost:8080/api/instructor/courses/${course.id}`,
             courseDataToSend,
             {
                 headers: {
-                    ...headers,
+                    'Authorization': headers.Authorization,
                     'Content-Type': 'application/json'
                 }
             }
         );
 
         console.log('Course update response:', response.data);
+      setSuccess(true);
+      
+      if (onSuccess) {
+        onSuccess(response.data);
+      }
 
-        // Update chapter details if they exist
-        if (courseData.chapterDetails && courseData.chapterDetails.length > 0) {
-            console.log('Updating chapter details:', courseData.chapterDetails);
-            
-            // Process each chapter detail
-            for (const detail of courseData.chapterDetails) {
-                try {
-                    await axios.post(
-                        `http://localhost:8080/api/instructor/courses/${course.id}/chapters`,
-                        {
-                            chapterIndex: detail.chapterIndex,
-                            title: detail.title,
-                            content: detail.content,
-                            objectives: detail.objectives,
-                            resources: detail.resources
-                        },
-                        { headers }
-                    );
-                } catch (detailError) {
-                    console.error(`Error updating chapter detail ${detail.chapterIndex}:`, detailError);
-                }
-            }
-        }
-
-        // Show success message
-        setSuccess(true);
-        console.log('Course update completed successfully');
-        
-        // Call the onSuccess callback with the updated course
-        if (onSuccess) {
-            onSuccess(response.data);
-        }
-
-        // Wait for a short delay to show the success message
         await new Promise(resolve => setTimeout(resolve, 1500));
 
-        // Call onCancel to return to the courses list
         if (onCancel) {
             onCancel();
         }
     } catch (error) {
         console.error('Error updating course:', error);
-        setError(error.response?.data || 'Failed to update course');
+        const errorMessage = error.response?.data?.message || 
+                           error.response?.data || 
+                           'Failed to update course. Please check your authorization and try again.';
+        setError(errorMessage);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 

@@ -165,6 +165,7 @@ public class InstructorController {
                     chapterDetail.setContent(detailRequest.getContent());
                     chapterDetail.setObjectives(detailRequest.getObjectives());
                     chapterDetail.setResources(detailRequest.getResources());
+                    chapterDetail.setVideoUrl(detailRequest.getVideoUrl());
                     chapterDetail.setCourse(savedCourse);
                     chapterDetail.setInstructor(user);
 
@@ -756,6 +757,7 @@ public class InstructorController {
                         detail.getContent(),
                         detail.getObjectives(),
                         detail.getResources(),
+                        detail.getVideoUrl(),
                         detail.getCourse().getId(),
                         detail.getInstructor().getId(),
                         detail.getInstructor().getFullName(),
@@ -806,6 +808,7 @@ public class InstructorController {
                 detail.getContent(),
                 detail.getObjectives(),
                 detail.getResources(),
+                detail.getVideoUrl(),
                 detail.getCourse().getId(),
                 detail.getInstructor().getId(),
                 detail.getInstructor().getFullName(),
@@ -857,6 +860,7 @@ public class InstructorController {
             chapterDetail.setContent(detailRequest.getContent());
             chapterDetail.setObjectives(detailRequest.getObjectives());
             chapterDetail.setResources(detailRequest.getResources());
+            chapterDetail.setVideoUrl(detailRequest.getVideoUrl());
             // updatedAt will be set by @PreUpdate
         } else {
             // Create new chapter detail
@@ -866,6 +870,7 @@ public class InstructorController {
             chapterDetail.setContent(detailRequest.getContent());
             chapterDetail.setObjectives(detailRequest.getObjectives());
             chapterDetail.setResources(detailRequest.getResources());
+            chapterDetail.setVideoUrl(detailRequest.getVideoUrl());
             chapterDetail.setCourse(course);
             chapterDetail.setInstructor(instructor);
         }
@@ -879,6 +884,7 @@ public class InstructorController {
                 savedDetail.getContent(),
                 savedDetail.getObjectives(),
                 savedDetail.getResources(),
+                savedDetail.getVideoUrl(),
                 savedDetail.getCourse().getId(),
                 savedDetail.getInstructor().getId(),
                 savedDetail.getInstructor().getFullName(),

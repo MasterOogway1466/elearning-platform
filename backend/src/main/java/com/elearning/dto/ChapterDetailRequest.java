@@ -17,4 +17,6 @@ public class ChapterDetailRequest {
     private String objectives;
 
     private String resources;
+
+    private String videoUrl;
 }

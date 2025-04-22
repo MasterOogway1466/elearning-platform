@@ -7,28 +7,49 @@ import { useAuth } from '../../context/AuthContext';
 const ChapterDetailForm = ({ chapterName, initialData, onSubmit, onCancel }) => {
   const { isInstructor } = useAuth();
   const [formData, setFormData] = useState({
+    chapterIndex: initialData?.chapterIndex || '',
     title: initialData?.title || chapterName || '',
     content: initialData?.content || '',
     objectives: initialData?.objectives || '',
-    resources: initialData?.resources || ''
+    resources: initialData?.resources || '',
+    videoUrl: initialData?.videoUrl || ''
   });
   
   useEffect(() => {
-    console.log('ChapterDetailForm - isInstructor:', isInstructor);
     console.log('ChapterDetailForm - initialData:', initialData);
-  }, [isInstructor, initialData]);
+    if (initialData) {
+      setFormData({
+        chapterIndex: initialData.chapterIndex || '',
+        title: initialData.title || chapterName || '',
+        content: initialData.content || '',
+        objectives: initialData.objectives || '',
+        resources: initialData.resources || '',
+        videoUrl: initialData.videoUrl || ''
+      });
+    }
+    console.log('ChapterDetailForm - formData after update:', formData);
+  }, [initialData, chapterName]);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
+    setFormData(prevState => ({
+      ...prevState,
       [name]: value
-    });
+    }));
   };
   
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    console.log('Submitting chapter detail form with data:', JSON.stringify(formData, null, 2));
+    
+    // Make sure videoUrl is included in the submission
+    const dataToSubmit = {
+      ...formData,
+      videoUrl: formData.videoUrl || ''
+    };
+    
+    console.log('Data being submitted:', JSON.stringify(dataToSubmit, null, 2));
+    onSubmit(dataToSubmit);
   };
 
   const handleQuizComplete = (score) => {
@@ -87,6 +108,22 @@ const ChapterDetailForm = ({ chapterName, initialData, onSubmit, onCancel }) => 
         </div>
         
         <div className="form-group">
+          <label htmlFor="videoUrl">Video URL (Google Drive)</label>
+          <input
+            type="url"
+            className="form-control"
+            id="videoUrl"
+            name="videoUrl"
+            value={formData.videoUrl}
+            onChange={handleChange}
+            placeholder="https://drive.google.com/file/d/..."
+          />
+          <small className="form-text text-muted">
+            Enter a Google Drive video link. Make sure the video is set to "Anyone with the link can view".
+          </small>
+        </div>
+        
+        <div className="form-group">
           <label htmlFor="resources">Additional Resources</label>
           <textarea
             className="form-control"
@@ -110,23 +147,25 @@ const ChapterDetailForm = ({ chapterName, initialData, onSubmit, onCancel }) => 
         </div>
       </form>
 
-      <div className="quiz-section mt-4">
-        <h4>
-          <i className="bi bi-question-circle me-2"></i>
-          Chapter Quiz
-        </h4>
-        {isInstructor ? (
-          <QuizList 
-            chapterId={initialData?.id || 0} 
-            isInstructor={isInstructor}
-          />
-        ) : (
-          <QuizView 
-            chapterId={initialData?.id || 0}
-            onComplete={handleQuizComplete}
-          />
-        )}
-      </div>
+      {initialData?.id && (
+        <div className="quiz-section mt-4">
+          <h4>
+            <i className="bi bi-question-circle me-2"></i>
+            Chapter Quiz
+          </h4>
+          {isInstructor ? (
+            <QuizList 
+              chapterId={initialData.id} 
+              isInstructor={true}
+            />
+          ) : (
+            <QuizView 
+              chapterId={initialData.id}
+              onComplete={handleQuizComplete}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 };

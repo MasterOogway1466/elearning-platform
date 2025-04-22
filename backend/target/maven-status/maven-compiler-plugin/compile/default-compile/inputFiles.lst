@@ -8,6 +8,7 @@ C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\repository\EnrollmentRepository.java
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\dto\ErrorResponse.java
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\repository\ChapterDetailRepository.java
+C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\repository\QuizSubmissionRepository.java
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\dto\MentoringSessionResponse.java
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\repository\CourseRepository.java
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\repository\MentoringSessionRepository.java
@@ -25,6 +26,7 @@ C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\security\UserDetailsImpl.java
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\config\WebConfig.java
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\service\CourseService.java
+C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\model\QuizSubmission.java
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\controller\DiagnosticController.java
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\dto\SignupRequest.java
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\model\User.java
@@ -52,6 +54,7 @@ C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\controller\EndpointListController.java
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\dto\LoginRequest.java
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\config\CorsConfig.java
+C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\dto\QuizSubmissionRequest.java
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\security\AuthEntryPointJwt.java
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\dto\NoteResponse.java
 C:\Users\likhi\OneDrive\Documents\Desktop\ooadnew\elearning-platform\backend\src\main\java\com\elearning\repository\NoteRepository.java

@@ -6,6 +6,8 @@ import noteService from '../../services/note.service';
 import QuizView from '../course/QuizView';
 import './ChapterView.css';
 
+const API_URL = 'http://localhost:8080';
+
 const ChapterView = () => {
   const { courseId, chapterIndex } = useParams();
   const navigate = useNavigate();
@@ -25,6 +27,7 @@ const ChapterView = () => {
   const [completionMessage, setCompletionMessage] = useState(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [quizScore, setQuizScore] = useState(null);
+  const [videoUrl, setVideoUrl] = useState('');
 
   useEffect(() => {
     const fetchCourseDetails = async () => {
@@ -87,19 +90,71 @@ const ChapterView = () => {
       setLoadingChapterDetail(true);
       setChapterDetailError(null);
       
+      // Get the authentication token using the correct key
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      
+      console.log('Fetching chapter details with token:', token.substring(0, 10) + '...');
+      
+      // Use the correct API endpoint path
       const response = await axios.get(
-        `http://localhost:8080/api/student/course/${courseId}/chapter/${activeChapterIndex}/details`,
-        { headers: authHeader() }
+        `${API_URL}/api/student/course/${courseId}/chapter/${activeChapterIndex}/details`,
+        {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
       
+      console.log('Chapter details response:', response.data);
       setChapterDetail(response.data);
+      setNotes(response.data.notes || '');
+      
+      // Check if videoUrl exists in the response
+      if (response.data.videoUrl) {
+        const formattedUrl = formatVideoUrl(response.data.videoUrl);
+        console.log('Formatted video URL:', formattedUrl);
+        setVideoUrl(formattedUrl);
+      } else {
+        console.log('No video URL found in the response');
+        setVideoUrl('');
+      }
     } catch (err) {
-      console.error('Failed to load chapter details:', err);
-      setChapterDetailError('Chapter details not available.');
-      setChapterDetail(null);
+      console.error('Error fetching chapter details:', err);
+      if (err.response && err.response.status === 403) {
+        setChapterDetailError('Access denied. Please log in again.');
+        // Redirect to login page
+        navigate('/login');
+      } else {
+        setChapterDetailError('Error fetching chapter details. Please try again.');
+      }
     } finally {
       setLoadingChapterDetail(false);
     }
+  };
+
+  const formatVideoUrl = (url) => {
+    if (!url) return '';
+    console.log('Formatting video URL:', url);
+    
+    // Extract Google Drive file ID
+    const fileIdMatch = url.match(/[-\w]{25,}/);
+    if (fileIdMatch) {
+      const fileId = fileIdMatch[0];
+      const formattedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+      console.log('Formatted Google Drive URL:', formattedUrl);
+      return formattedUrl;
+    }
+    
+    // If it's already a valid URL, return it as is
+    if (url.startsWith('http')) {
+      return url;
+    }
+    
+    return '';
   };
 
   const handleSaveNotes = async () => {
@@ -154,54 +209,191 @@ const ChapterView = () => {
     try {
       // Only allow course completion if the quiz is completed
       if (!quizCompleted) {
-        setCompletionMessage({
-          type: 'error',
-          text: 'Please complete the quiz before completing the course.'
-        });
+        setCompletionMessage('Please complete the quiz before completing the course.');
         return;
       }
 
       // Check if the score is at least 75%
-      if (quizScore && quizScore.percentage < 75) {
-        setCompletionMessage({
-          type: 'error',
-          text: 'You need to score at least 75% on the quiz to complete the course and receive a certificate.'
-        });
+      if (!quizScore || quizScore.percentage < 75) {
+        setCompletionMessage('You need to score at least 75% on the quiz to complete the course and receive a certificate.');
         return;
       }
 
       const response = await axios.post(
         `http://localhost:8080/api/student/courses/${courseId}/complete`,
-        {},
+        {
+          quizScore: quizScore.percentage,
+          earnedPoints: quizScore.earned,
+          totalPoints: quizScore.total
+        },
         { headers: authHeader() }
       );
       
-      setCompletionMessage({
-        type: 'success',
-        text: 'Course completed successfully! Your certificate has been generated.'
-      });
-
-      // Use React Router's navigate function directly
-      const viewCertificates = window.confirm('Course completed successfully! Your certificate has been generated. Would you like to view your certificates?');
+      setCompletionMessage('Course completed successfully! Your certificate has been generated.');
       
-      // Clear the message
+      // Use a more reliable confirmation dialog
+      const viewCertificates = window.confirm('Would you like to view your certificates now?');
+      
+      // Navigate based on user's choice after a short delay to ensure state updates
       setTimeout(() => {
-        setCompletionMessage(null);
-        // Navigate after the message is cleared
         if (viewCertificates) {
           navigate('/student-dashboard', { state: { section: 'certificates' } });
         } else {
-          handleBackToCourse();
+          navigate(`/student/course/${courseId}`);
         }
-      }, 1000);
+      }, 100);
 
     } catch (error) {
       console.error('Error completing course:', error);
-      setCompletionMessage({
-        type: 'error',
-        text: 'Failed to complete course. Please try again.'
-      });
+      setCompletionMessage(error.response?.data?.message || 'Failed to complete course. Please try again.');
     }
+  };
+
+  const renderChapterContent = () => {
+    if (loadingChapterDetail) {
+      return (
+        <div className="chapter-loading">
+          <i className="bi bi-hourglass-split"></i>
+          <p>Loading chapter content...</p>
+        </div>
+      );
+    }
+
+    if (chapterDetailError) {
+      return (
+        <div className="chapter-info-section">
+          <h3>Chapter Information</h3>
+          <p>This is chapter {activeChapterIndex + 1} of the course "{course?.title}".</p>
+          <p>{chapterDetailError}</p>
+        </div>
+      );
+    }
+
+    if (!chapterDetail) {
+      return (
+        <div className="chapter-info-section">
+          <h3>Chapter Information</h3>
+          <p>No chapter details available.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="chapter-detail-content">
+        {/* Video Section */}
+        {videoUrl && (
+          <div className="chapter-video-container">
+            <h3>Chapter Video</h3>
+            <div className="video-wrapper">
+              <iframe
+                src={videoUrl}
+                className="video-frame"
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+                title="Chapter Video"
+              ></iframe>
+            </div>
+          </div>
+        )}
+
+        {/* Content Section */}
+        <div className="chapter-section">
+          <div className="prose max-w-none">
+            <h3>Content</h3>
+            <div className="chapter-content" dangerouslySetInnerHTML={{ __html: chapterDetail.content }} />
+          </div>
+        </div>
+
+        {/* Objectives Section */}
+        {chapterDetail.objectives && (
+          <button
+            className="objectives-toggle-btn mt-4"
+            onClick={toggleObjectives}
+          >
+            <i className={`bi ${showObjectives ? 'bi-x-circle' : 'bi-check-square'} me-2`}></i>
+            {showObjectives ? 'Hide Learning Objectives' : 'View Learning Objectives'}
+          </button>
+        )}
+        
+        {showObjectives && chapterDetail.objectives && (
+          <div className="objectives-popup" onClick={toggleObjectives}>
+            <div className="objectives-popup-content" onClick={(e) => e.stopPropagation()}>
+              <div className="objectives-popup-header">
+                <h4><i className="bi bi-check-square me-2"></i>Learning Objectives</h4>
+                <button
+                  className="objectives-close-btn"
+                  onClick={toggleObjectives}
+                >
+                  <i className="bi bi-x-lg"></i>
+                </button>
+              </div>
+              <div className="chapter-objectives">
+                <div dangerouslySetInnerHTML={{ __html: chapterDetail.objectives }} />
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Resources Section */}
+        {chapterDetail.resources && (
+          <div className="chapter-section mt-4">
+            <h3 className="text-lg font-semibold mb-2">
+              <i className="bi bi-link-45deg me-2"></i>Additional Resources
+            </h3>
+            <div className="chapter-resources">
+              <div 
+                className="resources-content"
+                dangerouslySetInnerHTML={{ __html: chapterDetail.resources }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Quiz Section */}
+        <div className="chapter-section quiz-section mt-4">
+          <h4><i className="bi bi-question-circle me-2"></i>Chapter Quiz</h4>
+          {chapterDetail.id ? (
+            <>
+              <QuizView 
+                chapterId={chapterDetail.id}
+                onComplete={handleQuizComplete}
+              />
+              {quizCompleted && (
+                <div className="mt-4 text-center">
+                  <div className="quiz-completion-status">
+                    <p>Quiz Score: {quizScore.percentage}% ({quizScore.earned}/{quizScore.total} points)</p>
+                    {quizScore.percentage >= 75 ? (
+                      <p className="text-success">
+                        <i className="bi bi-check-circle me-2"></i>
+                        You have passed the quiz! You can now complete the course.
+                      </p>
+                    ) : (
+                      <p className="text-warning">
+                        <i className="bi bi-exclamation-triangle me-2"></i>
+                        You need to score at least 75% to complete the course.
+                      </p>
+                    )}
+                  </div>
+                  <button 
+                    className="btn btn-primary mt-3"
+                    onClick={handleCompleteCourse}
+                    disabled={!quizCompleted || quizScore.percentage < 75}
+                  >
+                    <i className="bi bi-trophy me-2"></i>
+                    Complete Course
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="alert alert-info">
+              <i className="bi bi-info-circle me-2"></i>
+              No quiz available for this chapter.
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -294,176 +486,24 @@ const ChapterView = () => {
           
           <div className="chapter-content-wrapper">
             <div className={`chapter-content-body ${showNotesPanel ? 'with-notes' : ''}`}>
-              {loadingChapterDetail ? (
-                <div className="chapter-loading">
-                  <i className="bi bi-hourglass-split"></i>
-                  <p>Loading chapter content...</p>
-                </div>
-              ) : chapterDetailError ? (
-                <div className="chapter-info-section">
-                  <h3>Chapter Information</h3>
-                  <p>This is chapter {activeChapterIndex + 1} of the course "{course.title}".</p>
-                  <p>{chapterDetailError}</p>
-                  <p>Additional chapter content would be displayed here, including text, images, videos, etc.</p>
-                </div>
-              ) : chapterDetail ? (
-                <div className="chapter-detail-content">
-                  {chapterDetail.objectives && (
-                    <button
-                      className="objectives-toggle-btn"
-                      onClick={toggleObjectives}
-                    >
-                      <i className={`bi ${showObjectives ? 'bi-x-circle' : 'bi-check-square'} me-2`}></i>
-                      {showObjectives ? 'Hide Learning Objectives' : 'View Learning Objectives'}
-                    </button>
-                  )}
-                  
-                  {showObjectives && chapterDetail.objectives && (
-                    <div className="objectives-popup" onClick={toggleObjectives}>
-                      <div className="objectives-popup-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="objectives-popup-header">
-                          <h4><i className="bi bi-check-square me-2"></i>Learning Objectives</h4>
-                          <button
-                            className="objectives-close-btn"
-                            onClick={toggleObjectives}
-                          >
-                            <i className="bi bi-x-lg"></i>
-                          </button>
-                        </div>
-                        <div className="chapter-objectives">
-                          <div dangerouslySetInnerHTML={{ __html: chapterDetail.objectives }} />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="chapter-section">
-                    {chapterDetail.content && (
-                      <div className="chapter-content">
-                        <div dangerouslySetInnerHTML={{ __html: chapterDetail.content }} />
-                      </div>
-                    )}
-                  </div>
-                  
-                  {chapterDetail.resources && (
-                    <div className="chapter-section">
-                      <h4><i className="bi bi-link-45deg me-2"></i>Additional Resources</h4>
-                      <div className="chapter-resources">
-                        <div dangerouslySetInnerHTML={{ __html: chapterDetail.resources }} />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Quiz Section */}
-                  <div className="chapter-section quiz-section">
-                    <h4><i className="bi bi-question-circle me-2"></i>Chapter Quiz</h4>
-                    <QuizView 
-                      chapterId={chapterDetail?.id || 0}
-                      onComplete={handleQuizComplete}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="chapter-info-section">
-                  <h3>Chapter Information</h3>
-                  <p>This is chapter {activeChapterIndex + 1} of the course "{course.title}".</p>
-                  <p>Additional chapter content would be displayed here, including text, images, videos, etc.</p>
-                </div>
-              )}
-
-              {completionMessage && (
-                <div className={`alert alert-${completionMessage.type || 'success'} mt-3`}>
-                  <i className={`bi bi-${completionMessage.type === 'error' ? 'exclamation-circle-fill' : 'check-circle-fill'} me-2`}></i>
-                  {typeof completionMessage === 'string' ? completionMessage : completionMessage.text}
-                </div>
-              )}
-
-              <div className="chapter-navigation">
-                {activeChapterIndex > 0 && (
-                  <button 
-                    className="btn btn-outline-primary"
-                    onClick={() => handleChapterClick(activeChapterIndex - 1)}
-                  >
-                    <i className="bi bi-arrow-left me-2"></i>
-                    Previous Chapter
-                  </button>
-                )}
-                
-                {activeChapterIndex < chapters.length - 1 ? (
-                  <button 
-                    className="btn btn-primary"
-                    onClick={() => handleChapterClick(activeChapterIndex + 1)}
-                  >
-                    Next Chapter
-                    <i className="bi bi-arrow-right ms-2"></i>
-                  </button>
-                ) : (
-                  <button 
-                    className={`btn ${quizCompleted ? 'btn-success' : 'btn-secondary'}`}
-                    onClick={handleCompleteCourse}
-                    disabled={!quizCompleted}
-                  >
-                    <i className="bi bi-check-circle me-2"></i>
-                    {quizCompleted ? 'Complete Course' : 'Complete Quiz First'}
-                  </button>
-                )}
-              </div>
+              {renderChapterContent()}
             </div>
             
             {showNotesPanel && (
               <div className="chapter-notes-panel">
-                <div className="notes-panel-header">
-                  <h3>
-                    <i className="bi bi-pencil-square me-2"></i>
-                    Course Notes
-                  </h3>
-                  <p className="text-muted mb-0">
-                    <small><i className="bi bi-info-circle me-1"></i> These notes are shared across all chapters in this course</small>
-                  </p>
-                </div>
-                
-                <div className="notes-panel-content">
-                  {notesError && (
-                    <div className="alert alert-danger">
-                      <i className="bi bi-exclamation-circle-fill me-2"></i>
-                      {notesError}
-                    </div>
-                  )}
-                  
-                  {notesSaved && (
-                    <div className="alert alert-success">
-                      <i className="bi bi-check-circle-fill me-2"></i>
-                      Notes saved successfully!
-                    </div>
-                  )}
-                  
+                <h3>Course Notes</h3>
                   <textarea
-                    className="notes-textarea"
-                    placeholder="Take notes for this course here..."
                     value={notes}
                     onChange={handleNotesChange}
+                  placeholder="Enter your notes here..."
                   ></textarea>
-                  
-                  <div className="notes-actions">
                     <button 
                       className="btn btn-primary"
                       onClick={handleSaveNotes}
                       disabled={savingNotes}
                     >
-                      {savingNotes ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <i className="bi bi-save me-2"></i>
-                          Save Notes
-                        </>
-                      )}
+                  {savingNotes ? 'Saving...' : 'Save Notes'}
                     </button>
-                  </div>
-                </div>
               </div>
             )}
           </div>

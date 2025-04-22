@@ -15,6 +15,7 @@ public class ChapterDetailResponse {
     private String content;
     private String objectives;
     private String resources;
+    private String videoUrl;
     private Long courseId;
     private Long instructorId;
     private String instructorName;

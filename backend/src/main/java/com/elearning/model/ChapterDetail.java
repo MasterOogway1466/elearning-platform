@@ -33,6 +33,9 @@ public class ChapterDetail {
     @Column(columnDefinition = "TEXT")
     private String resources;
 
+    @Column(columnDefinition = "TEXT")
+    private String videoUrl;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
